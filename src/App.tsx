@@ -4,6 +4,7 @@ import { PublicoLayout } from './layouts/PublicoLayout'
 import { ProfissionalLayout } from './layouts/ProfissionalLayout'
 import { Consulta } from './pages/publico/Consulta'
 import { ComoFunciona } from './pages/publico/ComoFunciona'
+import { Pipeline } from './pages/publico/Pipeline'
 import { Entrar } from './pages/profissional/Entrar'
 import { Fila } from './pages/profissional/Fila'
 import { Paciente } from './pages/profissional/Paciente'
@@ -14,6 +15,7 @@ import { RotaProtegida } from './store/auth'
 
 const TITULOS: [RegExp, string][] = [
   [/^\/como-funciona/, 'Como funciona · Pulso'],
+  [/^\/pipeline/, 'O pipeline por dentro · Pulso'],
   [/^\/profissional\/entrar/, 'Entrada profissional · Pulso'],
   [/^\/profissional\/fila/, 'Fila priorizada · Pulso'],
   [/^\/profissional\/pacientes/, 'Paciente · Pulso'],
@@ -40,6 +42,7 @@ export default function App() {
         <Route element={<PublicoLayout />}>
           <Route index element={<Consulta />} />
           <Route path="como-funciona" element={<ComoFunciona />} />
+          <Route path="pipeline" element={<Pipeline />} />
           <Route path="*" element={<NaoEncontrada />} />
         </Route>
 
