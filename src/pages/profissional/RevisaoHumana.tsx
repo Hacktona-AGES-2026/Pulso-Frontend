@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { CheckCheck, StepForward } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { CheckCheck, Square, StepForward } from 'lucide-react'
 import { api } from '../../api/cliente'
 import { formatarCid, motivoSemPrefixo, ROTULO_MUDANCA } from '../../api/rotulos'
 import type { Mudanca, TipoMudanca } from '../../api/tipos'
@@ -12,6 +12,8 @@ import { useProfissional } from '../../layouts/ProfissionalLayout'
 import { formatarData, formatarInstante } from '../../lib/datas'
 
 const POR_PAGINA = 12
+/** Pausa entre um evento e outro no modo automático, para dar para acompanhar o contador */
+const INTERVALO_MS = 120
 
 const FILTROS: ('todos' | TipoMudanca)[] = ['todos', 'subir', 'descer', 'sair']
 
@@ -25,12 +27,18 @@ export function RevisaoHumana() {
   const { resumo, recarregarResumo, medicoId } = useProfissional()
   const avisar = useAviso()
   const { hash } = useLocation()
+  const navegar = useNavigate()
   const pendentes = useApi(() => api.mudancas('pendente'))
   const decididas = useApi(() => api.mudancas('todas'))
   const [filtro, setFiltro] = useState<'todos' | TipoMudanca>('todos')
   const [pagina, setPagina] = useState(1)
   const [aberta, setAberta] = useState<{ mudanca: Mudanca; decisao: Decisao } | null>(null)
-  const [processando, setProcessando] = useState(false)
+  // Modo automático: processa eventos um a um até o sistema abrir um pedido novo.
+  const [rodando, setRodando] = useState(false)
+  const [lidos, setLidos] = useState(0)
+  const [restantes, setRestantes] = useState<number | null>(null)
+  const parar = useRef(false)
+  useEffect(() => () => void (parar.current = true), [])
 
   // Link vindo da tela do paciente: abre a página do pedido e rola até ele.
   useEffect(() => {
@@ -48,16 +56,46 @@ export function RevisaoHumana() {
     recarregarResumo()
   }
 
-  async function processarProximo() {
-    setProcessando(true)
+  async function processarAteNovoPedido() {
+    parar.current = false
+    setRodando(true)
+    setLidos(0)
+    const antes = new Set((pendentes.dados ?? []).map((m) => m.id))
+    let n = 0
+    let motivo: 'novo' | 'fim' | 'parado' | 'erro' = 'parado'
     try {
-      await api.processarEventos(1)
-      avisar('Evento processado', 'A caixa foi atualizada com o resultado.')
-      atualizarTudo()
+      while (!parar.current) {
+        const r = await api.processarEventos(1)
+        n += r.eventos
+        setLidos(n)
+        setRestantes(r.pendentes)
+        if (r.aberta > 0) {
+          motivo = 'novo'
+          break
+        }
+        if (r.eventos === 0 || r.pendentes === 0) {
+          motivo = 'fim'
+          break
+        }
+        await new Promise((ok) => setTimeout(ok, INTERVALO_MS))
+      }
     } catch (e) {
+      motivo = 'erro'
       avisar('Falha ao processar', e instanceof Error ? e.message : undefined)
-    } finally {
-      setProcessando(false)
+    }
+    setRodando(false)
+    atualizarTudo()
+
+    const lidosTexto = `${n} ${n === 1 ? 'evento lido' : 'eventos lidos'}`
+    if (motivo === 'novo') {
+      // Leva até o pedido que acabou de aparecer
+      const novo = (await api.mudancas('pendente').catch(() => [])).find((m) => !antes.has(m.id))
+      avisar('Novo pedido na revisão', novo ? `${novo.paciente_nome} · ${lidosTexto}` : lidosTexto)
+      if (novo) navegar({ hash: `pedido-${novo.id}` }, { replace: true })
+    } else if (motivo === 'fim') {
+      avisar('Todos os eventos foram processados', lidosTexto)
+    } else if (motivo === 'parado') {
+      avisar('Processamento pausado', lidosTexto)
     }
   }
 
@@ -71,27 +109,34 @@ export function RevisaoHumana() {
     window.scrollTo({ top: 0 })
   }
   const historico = (decididas.dados ?? []).filter((m) => m.status === 'aprovada' || m.status === 'rejeitada')
-  const eventosPendentes = resumo?.eventos.pendentes ?? 0
+  const eventosPendentes = rodando && restantes !== null ? restantes : (resumo?.eventos.pendentes ?? 0)
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-[2.5rem]">Revisão humana</h1>
-        <Botao
-          variante="secundario"
-          className="min-h-10 px-4"
-          carregando={processando}
-          disabled={eventosPendentes === 0}
-          onClick={processarProximo}
-          title={
-            eventosPendentes === 0
-              ? 'Todos os eventos clínicos já foram processados.'
-              : 'Reavalia o paciente do próximo evento clínico ainda não lido pelo sistema. Se o nível precisar mudar, um novo pedido aparece aqui.'
-          }
-        >
-          <StepForward size={16} /> Processar próximo evento
-          <span className="tabular text-tinta-soft">({eventosPendentes})</span>
-        </Botao>
+        {rodando ? (
+          <Botao className="min-h-10 px-4" onClick={() => (parar.current = true)} aria-live="polite">
+            <span className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true" />
+            Processando… <span className="tabular text-white/75">{lidos} lidos · {eventosPendentes} restantes</span>
+            <Square size={13} className="ml-1 fill-current" aria-label="Parar" />
+          </Botao>
+        ) : (
+          <Botao
+            variante="secundario"
+            className="min-h-10 px-4"
+            disabled={eventosPendentes === 0}
+            onClick={processarAteNovoPedido}
+            title={
+              eventosPendentes === 0
+                ? 'Todos os eventos clínicos já foram processados.'
+                : 'Lê os eventos clínicos um a um e para quando o sistema abrir um novo pedido de mudança. Clique de novo para continuar.'
+            }
+          >
+            <StepForward size={16} /> Processar até novo pedido
+            <span className="tabular text-tinta-soft">({eventosPendentes})</span>
+          </Botao>
+        )}
       </header>
 
       <div className="mt-5 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo de pedido">
