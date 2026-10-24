@@ -1,4 +1,6 @@
-export type Prioridade = 'A' | 'B' | 'C' | 'D'
+import type { FilaCodigo, Severidade } from './fila'
+
+export type { FilaCodigo, Severidade }
 
 export type TipoEvento =
   | 'entrada'
@@ -14,7 +16,7 @@ export interface EventoClinico {
   data: string // ISO yyyy-mm-dd
   tipo: TipoEvento
   descricao: string
-  /** Conta como sinal de piora no cálculo de prioridade */
+  /** Conta como sinal de piora no cálculo da pontuação */
   piora?: boolean
 }
 
@@ -29,8 +31,8 @@ export interface SinalIA {
 export interface Decisao {
   data: string // ISO com horário
   profissional: string
-  de: Prioridade | null
-  para: Prioridade
+  de: FilaCodigo | null
+  para: FilaCodigo
   justificativa: string
   tipo: 'inclusao' | 'ajuste' | 'revisao-confirmada' | 'revisao-mantida'
   /** Texto curto, em linguagem simples, que o paciente pode ver */
@@ -38,7 +40,9 @@ export interface Decisao {
 }
 
 export interface Paciente {
+  /** Identificador da solicitação (SOL-aaaa-nnnnn) */
   id: string
+  pacienteId: string
   nome: string
   idade: number
   sexo: 'F' | 'M'
@@ -50,7 +54,9 @@ export interface Paciente {
   especialidade: string
   cid: string
   cidDescricao: string
-  prioridade: Prioridade
+  fila: FilaCodigo
+  /** Prioridade marcada à mão na inclusão (sistema antigo) */
+  prioridadeManual: 'alta' | 'media' | 'baixa'
   dataEntrada: string
   /** Pontos de gravidade clínica (0–40) */
   gravidade: number
@@ -65,14 +71,22 @@ export interface Paciente {
   decisoes: Decisao[]
 }
 
-export interface Revisao {
+/** Marcação que pede decisão do regulador. Pode trazer uma proposta de mudança de nível. */
+export interface Marcacao {
   id: string
-  pacienteId: string
-  de: Prioridade
-  para: Prioridade
-  motivo: string
-  motivoPublico: string
-  evidencias: string[]
+  sid: string
+  marcacao: string
+  descricao: string
+  severidade: Severidade
+  evidencias?: string[]
+  proposta?: { de: FilaCodigo; para: FilaCodigo; motivoPublico: string }
   data: string
   status: 'pendente' | 'confirmada' | 'mantida'
+}
+
+export interface Pendencia {
+  sid: string
+  tipo: string
+  rotulo: string
+  detalhe: string
 }

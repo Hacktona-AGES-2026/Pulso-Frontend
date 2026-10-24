@@ -1,10 +1,10 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, SearchX, WifiOff } from 'lucide-react'
-import { Botao, Campo, Cartao, SeloPrioridade } from '../../components/ui'
+import { Botao, Campo, Cartao, TOM_FILA, cx } from '../../components/ui'
 import { formatarData } from '../../lib/datas'
 import { cnsValido, cpfValido, dataBrParaIso, mascararData, mascararDocumento, soDigitos } from '../../lib/documentos'
-import { PRIORIDADES } from '../../lib/prioridade'
+import { NIVEL_PUBLICO } from '../../data/fila'
 import { consultarEncaminhamento, type EncaminhamentoPublico } from '../../store/consultaPublica'
 import { usePulso } from '../../store/PulsoStore'
 
@@ -189,7 +189,7 @@ function Retorno({
 }
 
 function Resultado({ dados, aoVoltar }: { dados: EncaminhamentoPublico; aoVoltar: () => void }) {
-  const info = PRIORIDADES[dados.prioridade]
+  const info = NIVEL_PUBLICO[dados.fila]
   return (
     <div className="anim-subir mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-14">
       <button
@@ -212,9 +212,11 @@ function Resultado({ dados, aoVoltar }: { dados: EncaminhamentoPublico; aoVoltar
           <Cartao className="p-6 sm:p-7">
             <h2 className="text-2xl">Prioridade</h2>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <SeloPrioridade p={dados.prioridade} />
+              <span className={cx('tabular rounded-md px-2.5 py-1 text-sm font-semibold ring-1 ring-inset', TOM_FILA[dados.fila].selo)}>
+                Nível {info.nivel} de 7
+              </span>
             </div>
-            <p className="mt-3 text-[15px]">{info.descricaoPublica}</p>
+            <p className="mt-3 text-[15px]">{info.texto}</p>
             {dados.revisao && (
               <p className="mt-4 border-l-2 border-agua pl-3 text-[15px] text-tinta">
                 Sua prioridade foi revisada em {formatarData(dados.revisao.data)} após {dados.revisao.motivo}.

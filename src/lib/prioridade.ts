@@ -1,50 +1,6 @@
-import type { Paciente, Prioridade } from '../data/types'
+import { ehOncologico, ORDEM_FILAS, PRAZO_FILA } from '../data/fila'
+import type { Paciente } from '../data/types'
 import { diasEntre, HOJE } from './datas'
-
-export const PRIORIDADES: Record<
-  Prioridade,
-  { rotulo: string; prazo: number; descricaoPublica: string }
-> = {
-  A: {
-    rotulo: 'Urgente',
-    prazo: 21,
-    descricaoPublica: 'Sua condição exige que a cirurgia aconteça o quanto antes.',
-  },
-  B: {
-    rotulo: 'Prioritário',
-    prazo: 60,
-    descricaoPublica: 'Sua condição clínica coloca a cirurgia à frente dos casos eletivos.',
-  },
-  C: {
-    rotulo: 'Eletivo',
-    prazo: 180,
-    descricaoPublica: 'A cirurgia é necessária, sem sinais de urgência no momento.',
-  },
-  D: {
-    rotulo: 'Programável',
-    prazo: 365,
-    descricaoPublica: 'A cirurgia pode ser programada sem prejuízo à sua saúde.',
-  },
-}
-
-export const ORDEM: Prioridade[] = ['A', 'B', 'C', 'D']
-
-export function rotuloPrioridade(p: Prioridade) {
-  return `${p} · ${PRIORIDADES[p].rotulo}`
-}
-
-export function ehOncologico(cid: string) {
-  return cid.toUpperCase().startsWith('C')
-}
-
-/** Neoplasia maligna nunca fica abaixo de um caso sem urgência clínica. */
-export function prioridadeMinima(cid: string): Prioridade {
-  return ehOncologico(cid) ? 'B' : 'D'
-}
-
-export function permitida(p: Prioridade, cid: string) {
-  return ORDEM.indexOf(p) <= ORDEM.indexOf(prioridadeMinima(cid))
-}
 
 export interface Fatores {
   gravidade: number
@@ -60,10 +16,11 @@ export const LIMITES = { gravidade: 40, piora: 25, tempo: 20, risco: 15 }
 
 export function calcularFatores(p: Paciente): Fatores {
   const dias = diasEntre(p.dataEntrada)
-  const percentualPrazo = dias / PRIORIDADES[p.prioridade].prazo
-  const eventosPiora = p.eventos.filter(
-    (e) => e.piora && diasEntre(e.data, HOJE) <= 30 && diasEntre(e.data, HOJE) >= 0,
-  ).length
+  const percentualPrazo = dias / PRAZO_FILA[p.fila]
+  const eventosPiora = p.eventos.filter((e) => {
+    const d = diasEntre(e.data, HOJE)
+    return e.piora && d >= 0 && d <= 30
+  }).length
   const piora = Math.min(LIMITES.piora, eventosPiora * 11)
   const tempo = Math.min(LIMITES.tempo, Math.round(percentualPrazo * LIMITES.tempo))
   const total = p.gravidade + piora + tempo + p.risco
@@ -80,34 +37,25 @@ export interface LinhaFila {
 }
 
 export function resumoMotivo(p: Paciente, f: Fatores, dias: number) {
-  const prazo = PRIORIDADES[p.prioridade].prazo
-  const espera = `${dias} dias na fila (prazo de referência: ${prazo} dias)`
+  const espera = `${dias} dias (prazo ${PRAZO_FILA[p.fila]})`
   if (ehOncologico(p.cid)) return `Neoplasia maligna ${p.cid}; ${espera}.`
-  const partes = [p.motivo]
-  if (!p.motivo && f.eventosPiora > 0)
-    partes.push(`${f.eventosPiora} ${f.eventosPiora > 1 ? 'eventos' : 'evento'} de piora em 30 dias`)
-  if (!p.motivo && f.eventosPiora === 0) partes.push(p.cidDescricao)
-  return `${partes.filter(Boolean).join('; ')}; ${espera}.`
+  const motivo =
+    p.motivo ??
+    (f.eventosPiora > 0 ? `${f.eventosPiora} ${f.eventosPiora > 1 ? 'eventos' : 'evento'} de piora em 30 dias` : p.cidDescricao)
+  return `${motivo}; ${espera}.`
 }
 
-/**
- * Ordena a fila: classe de prioridade primeiro (o que garante oncológicos acima
- * de casos sem urgência), depois pontuação total e, por fim, tempo de espera.
- */
+/** Nível primeiro (garante a regra de ouro), depois pontuação e tempo de espera. */
 export function ordenarFila(pacientes: Paciente[]): LinhaFila[] {
   const chegada = [...pacientes]
     .sort((a, b) => a.dataEntrada.localeCompare(b.dataEntrada) || a.id.localeCompare(b.id))
     .reduce<Record<string, number>>((acc, p, i) => ((acc[p.id] = i + 1), acc), {})
 
   return pacientes
-    .map((paciente) => {
-      const fatores = calcularFatores(paciente)
-      const dias = diasEntre(paciente.dataEntrada)
-      return { paciente, fatores, dias }
-    })
+    .map((paciente) => ({ paciente, fatores: calcularFatores(paciente), dias: diasEntre(paciente.dataEntrada) }))
     .sort(
       (a, b) =>
-        ORDEM.indexOf(a.paciente.prioridade) - ORDEM.indexOf(b.paciente.prioridade) ||
+        ORDEM_FILAS.indexOf(a.paciente.fila) - ORDEM_FILAS.indexOf(b.paciente.fila) ||
         b.fatores.total - a.fatores.total ||
         b.dias - a.dias,
     )
@@ -117,4 +65,15 @@ export function ordenarFila(pacientes: Paciente[]): LinhaFila[] {
       posicaoChegada: chegada[l.paciente.id],
       resumo: resumoMotivo(l.paciente, l.fatores, l.dias),
     }))
+}
+
+/** Verifica a regra de ouro: nenhum oncológico abaixo de um paciente sem urgência (G4 em diante). */
+export function regraDeOuro(fila: LinhaFila[]) {
+  const semUrgencia = ORDEM_FILAS.indexOf('G4')
+  const ultimoOnco = Math.max(0, ...fila.filter((l) => ehOncologico(l.paciente.cid)).map((l) => l.posicao))
+  const primeiroSemUrgencia = Math.min(
+    Infinity,
+    ...fila.filter((l) => ORDEM_FILAS.indexOf(l.paciente.fila) >= semUrgencia).map((l) => l.posicao),
+  )
+  return ultimoOnco < primeiroSemUrgencia
 }

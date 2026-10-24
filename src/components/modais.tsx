@@ -1,23 +1,24 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { CircleCheck } from 'lucide-react'
-import type { Paciente, Prioridade, Revisao } from '../data/types'
-import { ORDEM, PRIORIDADES, ehOncologico, permitida, rotuloPrioridade } from '../lib/prioridade'
+import { ehOncologico, filaPermitida, NOME_FILA, ORDEM_FILAS, PRAZO_FILA, type FilaCodigo } from '../data/fila'
+import { rotuloMarcacao } from '../data/revisao'
+import type { Marcacao, Paciente } from '../data/types'
 import { usePulso } from '../store/PulsoStore'
-import { AreaTexto, Botao, Modal, SeloPrioridade, cx, useAviso } from './ui'
+import { AreaTexto, Botao, Modal, SeloFila, cx, useAviso } from './ui'
 
 const MINIMO = 15
 
 export function ModalAjuste({ paciente, aberto, aoFechar }: { paciente: Paciente; aberto: boolean; aoFechar: () => void }) {
-  const { ajustarPrioridade, linha } = usePulso()
+  const { ajustarFila, linha } = usePulso()
   const avisar = useAviso()
-  const [nova, setNova] = useState<Prioridade>(paciente.prioridade)
+  const [nova, setNova] = useState<FilaCodigo>(paciente.fila)
   const [texto, setTexto] = useState('')
   const [tentou, setTentou] = useState(false)
-  const [concluido, setConcluido] = useState<{ de: Prioridade; posicaoAntes: number } | null>(null)
+  const [concluido, setConcluido] = useState<{ de: FilaCodigo; posicaoAntes: number } | null>(null)
 
   useEffect(() => {
     if (aberto) {
-      setNova(paciente.prioridade)
+      setNova(paciente.fila)
       setTexto('')
       setTentou(false)
       setConcluido(null)
@@ -25,188 +26,164 @@ export function ModalAjuste({ paciente, aberto, aoFechar }: { paciente: Paciente
     // reinicia somente ao abrir
   }, [aberto])
 
-  const erroPrioridade = nova === paciente.prioridade ? 'Escolha uma prioridade diferente da atual.' : undefined
-  const erroTexto = texto.trim().length < MINIMO ? `Escreva ao menos ${MINIMO} caracteres.` : undefined
+  const erroNivel = nova === paciente.fila ? 'Escolha um nível diferente do atual.' : undefined
+  const erroTexto = texto.trim().length < MINIMO ? `Mínimo de ${MINIMO} caracteres.` : undefined
 
   function confirmar(e: FormEvent) {
     e.preventDefault()
     setTentou(true)
-    if (erroPrioridade || erroTexto) return
+    if (erroNivel || erroTexto) return
     const posicaoAntes = linha(paciente.id)?.posicao ?? 0
-    ajustarPrioridade(paciente.id, nova, texto.trim())
-    setConcluido({ de: paciente.prioridade, posicaoAntes })
-    avisar('Prioridade ajustada', `${paciente.nome} · ${rotuloPrioridade(nova)}`)
+    ajustarFila(paciente.id, nova, texto.trim())
+    setConcluido({ de: paciente.fila, posicaoAntes })
+    avisar('Nível ajustado', `${paciente.nome} · ${nova}`)
   }
 
   if (concluido) {
     const posicao = linha(paciente.id)?.posicao
     return (
-      <Modal aberto={aberto} aoFechar={aoFechar} titulo="Prioridade ajustada">
+      <Modal aberto={aberto} aoFechar={aoFechar} titulo="Nível ajustado">
         <div className="flex items-center gap-2 text-sucesso">
           <CircleCheck size={20} />
-          <p className="text-sm font-semibold">Decisão registrada no histórico do paciente.</p>
+          <p className="text-sm font-semibold">Registrado no histórico.</p>
         </div>
         <div className="mt-5 flex items-center gap-2">
-          <SeloPrioridade p={concluido.de} /> <span aria-hidden="true">→</span> <SeloPrioridade p={paciente.prioridade} />
+          <SeloFila f={concluido.de} /> <span aria-hidden="true">→</span> <SeloFila f={paciente.fila} />
         </div>
         {posicao && (
           <p className="tabular mt-4 text-[15px]">
-            Posição na fila: <strong>{concluido.posicaoAntes}</strong> → <strong className="text-petroleo">{posicao}</strong>
+            Posição: <strong>{concluido.posicaoAntes}</strong> → <strong className="text-petroleo">{posicao}</strong>
           </p>
         )}
         <Botao className="mt-7 w-full" onClick={aoFechar}>
-          Voltar ao paciente
+          Fechar
         </Botao>
       </Modal>
     )
   }
 
   return (
-    <Modal
-      aberto={aberto}
-      aoFechar={aoFechar}
-      titulo="Ajustar prioridade"
-      subtitulo={
-        <>
-          {paciente.nome} · {paciente.procedimento}
-        </>
-      }
-    >
+    <Modal aberto={aberto} aoFechar={aoFechar} titulo="Ajustar nível" subtitulo={`${paciente.nome} · ${paciente.procedimento}`}>
       <form onSubmit={confirmar} noValidate>
         <fieldset>
-          <legend className="mb-2 text-sm font-medium">
-            Nova prioridade <span className="text-urgente" aria-hidden="true">*</span>
-          </legend>
-          <div className="space-y-2">
-            {ORDEM.map((p) => {
-              const ok = permitida(p, paciente.cid)
+          <legend className="sr-only">Novo nível</legend>
+          <div className="grid gap-1.5">
+            {ORDEM_FILAS.map((f) => {
+              const ok = filaPermitida(f, paciente.cid)
               return (
                 <label
-                  key={p}
+                  key={f}
                   className={cx(
-                    'flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-2.5 transition-colors',
-                    nova === p ? 'border-petroleo bg-nevoa-50' : 'border-linha hover:border-petroleo/40',
-                    !ok && 'cursor-not-allowed opacity-50',
+                    'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 transition-colors',
+                    nova === f ? 'border-petroleo bg-nevoa-50' : 'border-linha hover:border-petroleo/40',
+                    !ok && 'cursor-not-allowed opacity-45',
                   )}
                 >
                   <input
                     type="radio"
-                    name="prioridade"
-                    value={p}
-                    checked={nova === p}
+                    name="nivel"
+                    value={f}
+                    checked={nova === f}
                     disabled={!ok}
-                    onChange={() => setNova(p)}
+                    onChange={() => setNova(f)}
                     className="size-4 accent-petroleo"
                   />
-                  <SeloPrioridade p={p} compacto />
-                  <span className="text-[13px] text-tinta-soft">prazo de {PRIORIDADES[p].prazo} dias</span>
-                  {p === paciente.prioridade && (
-                    <span className="ml-auto text-xs font-semibold text-petroleo">atual</span>
-                  )}
+                  <SeloFila f={f} compacto />
+                  <span className="text-[13px]">{NOME_FILA[f]}</span>
+                  <span className="tabular ml-auto text-xs text-tinta-soft">
+                    {f === paciente.fila ? 'atual' : `${PRAZO_FILA[f]} d`}
+                  </span>
                 </label>
               )
             })}
           </div>
           {ehOncologico(paciente.cid) && (
-            <p className="mt-2 text-[13px] text-tinta-soft">
-              Neoplasia maligna ({paciente.cid}): a prioridade não pode ficar abaixo de B.
-            </p>
+            <p className="mt-2 text-[13px] text-tinta-soft">{paciente.cid}: não pode ir abaixo de G3.</p>
           )}
-          {tentou && erroPrioridade && <p className="mt-2 text-[13px] font-medium text-urgente">{erroPrioridade}</p>}
+          {tentou && erroNivel && <p className="mt-2 text-[13px] font-medium text-urgente">{erroNivel}</p>}
         </fieldset>
 
         <div className="mt-5">
-          <AreaTexto
-            rotulo="Justificativa"
-            dica="Fica registrada no histórico de decisões."
-            erro={tentou ? erroTexto : undefined}
-            valor={texto}
-            aoMudar={setTexto}
-            minimo={MINIMO}
-          />
+          <AreaTexto rotulo="Justificativa" erro={tentou ? erroTexto : undefined} valor={texto} aoMudar={setTexto} minimo={MINIMO} />
         </div>
 
-        <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Botao type="button" variante="secundario" onClick={aoFechar}>
             Cancelar
           </Botao>
-          <Botao type="submit">Confirmar ajuste</Botao>
+          <Botao type="submit">Confirmar</Botao>
         </div>
       </form>
     </Modal>
   )
 }
 
+export function rotulosDecisao(m: Marcacao) {
+  return m.proposta
+    ? { confirmar: 'Confirmar alteração', manter: 'Manter nível atual' }
+    : { confirmar: 'Marcar como resolvida', manter: 'Dispensar' }
+}
+
 export function ModalDecisao({
-  revisao,
+  marcacao,
   paciente,
   decisao,
   aoFechar,
   aoDecidir,
 }: {
-  revisao: Revisao | null
+  marcacao: Marcacao | null
   paciente?: Paciente
   decisao: 'confirmar' | 'manter'
   aoFechar: () => void
-  aoDecidir?: (revisao: Revisao, decisao: 'confirmar' | 'manter') => void
+  aoDecidir?: (m: Marcacao, decisao: 'confirmar' | 'manter') => void
 }) {
-  const { decidirRevisao } = usePulso()
+  const { decidirMarcacao } = usePulso()
   const [texto, setTexto] = useState('')
   const [tentou, setTentou] = useState(false)
 
   useEffect(() => {
     setTexto('')
     setTentou(false)
-  }, [revisao, decisao])
+  }, [marcacao, decisao])
 
-  const erro = texto.trim().length < MINIMO ? `Escreva ao menos ${MINIMO} caracteres.` : undefined
-  const confirmar = decisao === 'confirmar'
+  const erro = texto.trim().length < MINIMO ? `Mínimo de ${MINIMO} caracteres.` : undefined
 
   function enviar(e: FormEvent) {
     e.preventDefault()
     setTentou(true)
-    if (erro || !revisao) return
-    decidirRevisao(revisao.id, decisao, texto.trim())
-    aoDecidir?.(revisao, decisao)
+    if (erro || !marcacao) return
+    decidirMarcacao(marcacao.id, decisao, texto.trim())
+    aoDecidir?.(marcacao, decisao)
     aoFechar()
   }
 
   return (
     <Modal
-      aberto={!!revisao}
+      aberto={!!marcacao}
       aoFechar={aoFechar}
-      titulo={confirmar ? 'Confirmar alteração' : 'Manter prioridade atual'}
+      titulo={marcacao ? rotulosDecisao(marcacao)[decisao] : ''}
       subtitulo={paciente && `${paciente.nome} · ${paciente.procedimento}`}
     >
-      {revisao && (
+      {marcacao && (
         <form onSubmit={enviar} noValidate>
-          <div className="flex flex-wrap items-center gap-2">
-            {confirmar ? (
-              <>
-                <SeloPrioridade p={revisao.de} /> <span aria-hidden="true">→</span> <SeloPrioridade p={revisao.para} />
-              </>
-            ) : (
-              <>
-                <SeloPrioridade p={revisao.de} />
-                <span className="text-[13px] text-tinta-soft">proposta de {revisao.para} recusada</span>
-              </>
-            )}
-          </div>
-          <p className="mt-4 rounded-lg bg-nevoa-50 px-4 py-3 text-sm">
-            <span className="font-semibold text-petroleo">Motivo da proposta: </span>
-            {revisao.motivo}
+          {marcacao.proposta && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <SeloFila f={marcacao.proposta.de} nome />
+              {decisao === 'confirmar' && (
+                <>
+                  <span aria-hidden="true">→</span> <SeloFila f={marcacao.proposta.para} nome />
+                </>
+              )}
+            </div>
+          )}
+          <p className="rounded-lg bg-nevoa-50 px-4 py-3 text-sm">
+            <span className="font-semibold text-petroleo">{rotuloMarcacao(marcacao.marcacao)}: </span>
+            {marcacao.descricao}
           </p>
           <div className="mt-5">
-            <AreaTexto
-              rotulo="Justificativa da decisão"
-              dica={confirmar ? 'Ex.: evento clínico confirmado no prontuário.' : 'Ex.: evento sem relação com a indicação cirúrgica.'}
-              erro={tentou ? erro : undefined}
-              valor={texto}
-              aoMudar={setTexto}
-              minimo={MINIMO}
-            />
+            <AreaTexto rotulo="Justificativa" erro={tentou ? erro : undefined} valor={texto} aoMudar={setTexto} minimo={MINIMO} />
           </div>
-          <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Botao type="button" variante="secundario" onClick={aoFechar}>
               Cancelar
             </Botao>

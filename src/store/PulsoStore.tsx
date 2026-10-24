@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { filaInicial, REGULADOR_ATUAL } from '../data/pacientes'
-import { revisoesIniciais } from '../data/revisoes'
-import type { Paciente, Prioridade, Revisao, SinalIA } from '../data/types'
+import { MARCACOES, rotuloMarcacao } from '../data/revisao'
+import type { FilaCodigo, Marcacao, Paciente, SinalIA } from '../data/types'
 import { agora } from '../lib/datas'
 import { ordenarFila, type LinhaFila } from '../lib/prioridade'
 
@@ -11,11 +11,11 @@ import { ordenarFila, type LinhaFila } from '../lib/prioridade'
  * o que mantém a área pública e a profissional lendo a mesma fonte.
  */
 type Acao =
-  | { tipo: 'ajuste'; pacienteId: string; para: Prioridade; justificativa: string; data: string; profissional: string }
-  | { tipo: 'revisao'; revisaoId: string; decisao: 'confirmar' | 'manter'; justificativa: string; data: string; profissional: string }
+  | { tipo: 'ajuste'; pacienteId: string; para: FilaCodigo; justificativa: string; data: string; profissional: string }
+  | { tipo: 'marcacao'; marcacaoId: string; decisao: 'confirmar' | 'manter'; justificativa: string; data: string; profissional: string }
   | { tipo: 'sinal'; pacienteId: string; sinalId: string; status: SinalIA['status'] }
 
-const CHAVE = 'pulso:decisoes:v1'
+const CHAVE = 'pulso:decisoes:v2'
 const base = filaInicial()
 
 function lerAcoes(): Acao[] {
@@ -29,7 +29,7 @@ function lerAcoes(): Acao[] {
 
 function aplicar(acoes: Acao[]) {
   const pacientes = new Map(base.map((p) => [p.id, p]))
-  const revisoes = new Map(revisoesIniciais.map((r) => [r.id, r]))
+  const marcacoes = new Map(MARCACOES.map((m) => [m.id, m]))
   const editar = (id: string, fn: (p: Paciente) => Paciente) => {
     const p = pacientes.get(id)
     if (p) pacientes.set(id, fn(p))
@@ -39,13 +39,13 @@ function aplicar(acoes: Acao[]) {
     if (a.tipo === 'ajuste') {
       editar(a.pacienteId, (p) => ({
         ...p,
-        prioridade: a.para,
+        fila: a.para,
         decisoes: [
           ...p.decisoes,
           {
             data: a.data,
             profissional: a.profissional,
-            de: p.prioridade,
+            de: p.fila,
             para: a.para,
             justificativa: a.justificativa,
             tipo: 'ajuste',
@@ -53,27 +53,30 @@ function aplicar(acoes: Acao[]) {
           },
         ],
       }))
-    } else if (a.tipo === 'revisao') {
-      const r = revisoes.get(a.revisaoId)
-      if (!r || r.status !== 'pendente') continue
+    } else if (a.tipo === 'marcacao') {
+      const m = marcacoes.get(a.marcacaoId)
+      if (!m || m.status !== 'pendente') continue
       const confirmar = a.decisao === 'confirmar'
-      revisoes.set(r.id, { ...r, status: confirmar ? 'confirmada' : 'mantida' })
-      editar(r.pacienteId, (p) => ({
-        ...p,
-        prioridade: confirmar ? r.para : p.prioridade,
-        decisoes: [
-          ...p.decisoes,
-          {
-            data: a.data,
-            profissional: a.profissional,
-            de: p.prioridade,
-            para: confirmar ? r.para : p.prioridade,
-            justificativa: a.justificativa,
-            tipo: confirmar ? 'revisao-confirmada' : 'revisao-mantida',
-            motivoPublico: confirmar ? r.motivoPublico : undefined,
-          },
-        ],
-      }))
+      marcacoes.set(m.id, { ...m, status: confirmar ? 'confirmada' : 'mantida' })
+      editar(m.sid, (p) => {
+        const para = confirmar && m.proposta ? m.proposta.para : p.fila
+        return {
+          ...p,
+          fila: para,
+          decisoes: [
+            ...p.decisoes,
+            {
+              data: a.data,
+              profissional: a.profissional,
+              de: p.fila,
+              para,
+              justificativa: m.proposta ? a.justificativa : `${rotuloMarcacao(m.marcacao)}: ${a.justificativa}`,
+              tipo: confirmar ? 'revisao-confirmada' : 'revisao-mantida',
+              motivoPublico: confirmar ? m.proposta?.motivoPublico : undefined,
+            },
+          ],
+        }
+      })
     } else {
       editar(a.pacienteId, (p) => ({
         ...p,
@@ -81,16 +84,16 @@ function aplicar(acoes: Acao[]) {
       }))
     }
   }
-  return { pacientes: [...pacientes.values()], revisoes: [...revisoes.values()] }
+  return { pacientes: [...pacientes.values()], marcacoes: [...marcacoes.values()] }
 }
 
 interface Pulso {
   fila: LinhaFila[]
   linha: (id: string) => LinhaFila | undefined
-  revisoes: Revisao[]
-  pendentes: Revisao[]
-  ajustarPrioridade: (pacienteId: string, para: Prioridade, justificativa: string) => void
-  decidirRevisao: (revisaoId: string, decisao: 'confirmar' | 'manter', justificativa: string) => void
+  marcacoes: Marcacao[]
+  pendentes: Marcacao[]
+  ajustarFila: (pacienteId: string, para: FilaCodigo, justificativa: string) => void
+  decidirMarcacao: (marcacaoId: string, decisao: 'confirmar' | 'manter', justificativa: string) => void
   marcarSinal: (pacienteId: string, sinalId: string, status: SinalIA['status']) => void
 }
 
@@ -115,10 +118,10 @@ export function PulsoProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const estado = useMemo(() => {
-    const { pacientes, revisoes } = aplicar(acoes)
+    const { pacientes, marcacoes } = aplicar(acoes)
     const fila = ordenarFila(pacientes)
     const indice = new Map(fila.map((l) => [l.paciente.id, l]))
-    return { fila, indice, revisoes }
+    return { fila, indice, marcacoes }
   }, [acoes])
 
   const registrar = useCallback((a: Acao) => setAcoes((atual) => [...atual, a]), [])
@@ -127,12 +130,12 @@ export function PulsoProvider({ children }: { children: ReactNode }) {
     () => ({
       fila: estado.fila,
       linha: (id) => estado.indice.get(id),
-      revisoes: estado.revisoes,
-      pendentes: estado.revisoes.filter((r) => r.status === 'pendente'),
-      ajustarPrioridade: (pacienteId, para, justificativa) =>
+      marcacoes: estado.marcacoes,
+      pendentes: estado.marcacoes.filter((m) => m.status === 'pendente'),
+      ajustarFila: (pacienteId, para, justificativa) =>
         registrar({ tipo: 'ajuste', pacienteId, para, justificativa, data: agora(), profissional: REGULADOR_ATUAL }),
-      decidirRevisao: (revisaoId, decisao, justificativa) =>
-        registrar({ tipo: 'revisao', revisaoId, decisao, justificativa, data: agora(), profissional: REGULADOR_ATUAL }),
+      decidirMarcacao: (marcacaoId, decisao, justificativa) =>
+        registrar({ tipo: 'marcacao', marcacaoId, decisao, justificativa, data: agora(), profissional: REGULADOR_ATUAL }),
       marcarSinal: (pacienteId, sinalId, status) => registrar({ tipo: 'sinal', pacienteId, sinalId, status }),
     }),
     [estado, registrar],

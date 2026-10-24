@@ -1,13 +1,19 @@
 import { useMemo, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { BarraPrazo, SeloPrioridade, cx } from '../../components/ui'
-import type { Prioridade } from '../../data/types'
+import { BarraPrazo, SeloFila, TOM_FILA, cx } from '../../components/ui'
+import { NOME_FILA, ORDEM_FILAS, type FilaCodigo } from '../../data/fila'
 import { formatarData, HOJE } from '../../lib/datas'
-import { ORDEM, PRIORIDADES, type LinhaFila } from '../../lib/prioridade'
+import type { LinhaFila } from '../../lib/prioridade'
 import { usePulso } from '../../store/PulsoStore'
 
 const POR_PAGINA = 20
+
+const normalizar = (t: string) =>
+  t
+    .toLocaleLowerCase('pt-BR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
 
 type Chave = 'posicao' | 'dias' | 'prazo'
 const ORDENADORES: Record<Chave, (a: LinhaFila, b: LinhaFila) => number> = {
@@ -17,13 +23,13 @@ const ORDENADORES: Record<Chave, (a: LinhaFila, b: LinhaFila) => number> = {
 }
 
 export function Fila() {
-  const { fila, pendentes } = usePulso()
+  const { fila } = usePulso()
   const [params, setParams] = useSearchParams()
   const navegar = useNavigate()
 
   const busca = params.get('q') ?? ''
   const especialidade = params.get('esp') ?? ''
-  const prioridade = (params.get('prio') ?? '') as Prioridade | ''
+  const nivel = (params.get('nivel') ?? '') as FilaCodigo | ''
   const chave = (params.get('ordem') ?? 'posicao') as Chave
   const crescente = params.get('dir') !== 'desc'
   const pagina = Math.max(1, Number(params.get('p') ?? 1))
@@ -42,102 +48,87 @@ export function Fila() {
     () => [...new Set(fila.map((l) => l.paciente.especialidade))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
     [fila],
   )
-  const acimaDoPrazo = useMemo(() => fila.filter((l) => l.fatores.percentualPrazo > 1).length, [fila])
 
   const filtrada = useMemo(() => {
-    const termo = busca
-      .trim()
-      .toLocaleLowerCase('pt-BR')
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
+    const termo = normalizar(busca.trim())
     const lista = fila.filter(({ paciente: p }) => {
       if (especialidade && p.especialidade !== especialidade) return false
-      if (prioridade && p.prioridade !== prioridade) return false
-      if (!termo) return true
-      const alvo = `${p.nome} ${p.id} ${p.procedimento} ${p.cid}`
-        .toLocaleLowerCase('pt-BR')
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-      return alvo.includes(termo)
+      if (nivel && p.fila !== nivel) return false
+      return !termo || normalizar(`${p.nome} ${p.id} ${p.pacienteId} ${p.procedimento} ${p.cid}`).includes(termo)
     })
     const ordenar = ORDENADORES[chave] ?? ORDENADORES.posicao
     return lista.sort((a, b) => (crescente ? 1 : -1) * ordenar(a, b))
-  }, [fila, busca, especialidade, prioridade, chave, crescente])
+  }, [fila, busca, especialidade, nivel, chave, crescente])
 
   const totalPaginas = Math.max(1, Math.ceil(filtrada.length / POR_PAGINA))
   const atual = Math.min(pagina, totalPaginas)
   const visiveis = filtrada.slice((atual - 1) * POR_PAGINA, atual * POR_PAGINA)
-  const filtrando = busca || especialidade || prioridade
+  const filtrando = busca || especialidade || nivel
 
   const ordenarPor = (k: Chave) =>
     atualizar({ ordem: k === 'posicao' ? null : k, dir: chave === k && crescente ? 'desc' : null })
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[2.5rem]">Fila priorizada</h1>
-          <p className="mt-1 text-sm text-tinta-soft">
-            Ordem por prioridade clínica · atualizada em {formatarData(HOJE)}
-          </p>
-        </div>
+      <header>
+        <p className="tabular text-sm text-tinta-soft">{formatarData(HOJE)}</p>
+        <h1 className="text-[2.5rem]">Fila priorizada</h1>
       </header>
 
-      <div className="mt-7 grid grid-cols-3 divide-x divide-linha rounded-xl border border-linha bg-white">
-        <Indicador termo="Pacientes na fila" valor={fila.length} />
-        <Indicador termo="Acima do prazo de referência" valor={acimaDoPrazo} tom="text-urgente" />
-        <Indicador
-          termo="Revisões pendentes"
-          valor={pendentes.length}
-          tom="text-prioritario"
-          link={pendentes.length > 0 ? '/profissional/revisoes' : undefined}
-        />
-      </div>
-
-      <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_14rem_12rem]">
-        <div className="sm:col-span-2 lg:col-span-1">
-          <label htmlFor="busca" className="mb-1.5 block text-[13px] font-medium">
+      <div className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_15rem]">
+        <div className="relative">
+          <label htmlFor="busca" className="sr-only">
             Buscar
           </label>
-          <div className="relative">
-            <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-tinta-soft" />
-            <input
-              id="busca"
-              type="search"
-              value={busca}
-              onChange={(e) => atualizar({ q: e.target.value || null })}
-              placeholder="Nome, identificador, procedimento ou CID"
-              className="min-h-11 w-full rounded-lg border border-linha bg-white pl-10 pr-3 text-sm outline-none focus:border-oceano focus:ring-2 focus:ring-oceano/25"
-            />
-          </div>
+          <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-tinta-soft" />
+          <input
+            id="busca"
+            type="search"
+            value={busca}
+            onChange={(e) => atualizar({ q: e.target.value || null })}
+            placeholder="Buscar paciente, ID, procedimento ou CID"
+            className="min-h-11 w-full rounded-lg border border-linha bg-white pl-10 pr-3 text-sm outline-none focus:border-oceano focus:ring-2 focus:ring-oceano/25"
+          />
         </div>
-        <Seletor
-          id="esp"
-          rotulo="Especialidade"
-          valor={especialidade}
-          aoMudar={(v) => atualizar({ esp: v || null })}
-          opcoes={especialidades.map((e) => [e, e])}
-        />
-        <Seletor
-          id="prio"
-          rotulo="Prioridade"
-          valor={prioridade}
-          aoMudar={(v) => atualizar({ prio: v || null })}
-          opcoes={ORDEM.map((p) => [p, `${p} · ${PRIORIDADES[p].rotulo}`])}
-        />
+        <div>
+          <label htmlFor="esp" className="sr-only">
+            Especialidade
+          </label>
+          <select
+            id="esp"
+            value={especialidade}
+            onChange={(e) => atualizar({ esp: e.target.value || null })}
+            className="min-h-11 w-full rounded-lg border border-linha bg-white px-3 text-sm outline-none focus:border-oceano focus:ring-2 focus:ring-oceano/25"
+          >
+            <option value="">Todas as especialidades</option>
+            {especialidades.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 text-[13px] text-tinta-soft">
+      <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por nível">
+        <Chip ativo={!nivel} aoClicar={() => atualizar({ nivel: null })}>
+          Todos
+        </Chip>
+        {ORDEM_FILAS.map((f) => (
+          <Chip key={f} ativo={nivel === f} aoClicar={() => atualizar({ nivel: nivel === f ? null : f })} titulo={NOME_FILA[f]}>
+            <span className={cx('size-2 rounded-full', TOM_FILA[f].barra)} aria-hidden="true" />
+            {f}
+          </Chip>
+        ))}
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-[13px] text-tinta-soft">
         <p aria-live="polite">
-          {filtrada.length === fila.length
-            ? `${fila.length} pacientes`
-            : `${filtrada.length} de ${fila.length} pacientes`}
+          {filtrada.length === fila.length ? `${fila.length} pacientes` : `${filtrada.length} de ${fila.length}`}
+          {nivel && ` · ${NOME_FILA[nivel]}`}
         </p>
         {filtrando && (
-          <button
-            onClick={() => atualizar({ q: null, esp: null, prio: null })}
-            className="font-semibold text-petroleo hover:underline"
-          >
+          <button onClick={() => atualizar({ q: null, esp: null, nivel: null })} className="font-semibold text-petroleo hover:underline">
             Limpar filtros
           </button>
         )}
@@ -164,14 +155,14 @@ export function Fila() {
                   </th>
                   <th scope="col" className="px-3 py-3 font-medium">Paciente</th>
                   <th scope="col" className="px-3 py-3 font-medium">Procedimento · CID</th>
-                  <th scope="col" className="px-3 py-3 font-medium">Prioridade</th>
+                  <th scope="col" className="px-3 py-3 font-medium">Nível</th>
                   <Cabecalho chave="dias" atual={chave} crescente={crescente} aoOrdenar={ordenarPor} className="text-right">
                     Dias na fila
                   </Cabecalho>
                   <Cabecalho chave="prazo" atual={chave} crescente={crescente} aoOrdenar={ordenarPor}>
                     Prazo utilizado
                   </Cabecalho>
-                  <th scope="col" className="px-3 py-3 pr-5 font-medium">Motivo da priorização</th>
+                  <th scope="col" className="px-3 py-3 pr-5 font-medium">Motivo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-linha">
@@ -181,7 +172,10 @@ export function Fila() {
                     onClick={() => navegar(`/profissional/pacientes/${l.paciente.id}`)}
                     className="cursor-pointer align-top transition-colors hover:bg-areia/70"
                   >
-                    <td className="tabular py-3.5 pl-5 pr-3 font-serif text-xl font-semibold text-petroleo">{l.posicao}</td>
+                    <td className="tabular relative py-3.5 pl-5 pr-3 font-serif text-xl font-semibold text-petroleo">
+                      <span className={cx('absolute inset-y-0 left-0 w-1', TOM_FILA[l.paciente.fila].barra)} aria-hidden="true" />
+                      {l.posicao}
+                    </td>
                     <td className="px-3 py-4">
                       <Mudanca linha={l} />
                     </td>
@@ -202,7 +196,7 @@ export function Fila() {
                       <p className="text-xs font-semibold text-tinta-soft">{l.paciente.cid}</p>
                     </td>
                     <td className="px-3 py-3.5">
-                      <SeloPrioridade p={l.paciente.prioridade} compacto />
+                      <SeloFila f={l.paciente.fila} compacto />
                     </td>
                     <td className="tabular px-3 py-3.5 text-right font-medium">{l.dias}</td>
                     <td className="px-3 py-4">
@@ -233,7 +227,7 @@ export function Fila() {
                         </p>
                       </div>
                     </div>
-                    <SeloPrioridade p={l.paciente.prioridade} compacto />
+                    <SeloFila f={l.paciente.fila} compacto />
                   </div>
                   <p className="mt-3 text-sm">
                     {l.paciente.procedimento} <span className="text-tinta-soft">· {l.paciente.cid}</span>
@@ -246,7 +240,7 @@ export function Fila() {
                         <Mudanca linha={l} />
                       </div>
                     </div>
-                    <BarraPrazo percentual={l.fatores.percentualPrazo} />
+                    <BarraPrazo percentual={l.fatores.percentualPrazo} compacta />
                   </div>
                   <p className="mt-3 border-t border-linha pt-3 text-[13px] leading-snug text-tinta-soft">{l.resumo}</p>
                 </Link>
@@ -294,10 +288,6 @@ export function Fila() {
               </BotaoPagina>
             </div>
           </nav>
-          <p className="mt-6 text-xs text-tinta-soft">
-            Mudança: comparação com a ordem de chegada. A classe de prioridade define a ordem; dentro de cada classe,
-            pesam gravidade, piora recente, tempo de espera e risco.
-          </p>
         </>
       )}
     </div>
@@ -311,62 +301,7 @@ function paginas(atual: number, total: number): (number | null)[] {
   return lista.flatMap((n, i) => (i > 0 && n - lista[i - 1] > 1 ? [null, n] : [n]))
 }
 
-function Indicador({ termo, valor, tom, link }: { termo: string; valor: number; tom?: string; link?: string }) {
-  const conteudo = (
-    <>
-      <p className={cx('tabular font-serif text-[2rem] font-semibold leading-none sm:text-[2.4rem]', tom ?? 'text-petroleo')}>
-        {valor}
-      </p>
-      <p className="mt-1.5 text-xs text-tinta-soft sm:text-[13px]">{termo}</p>
-    </>
-  )
-  return (
-    <div className="px-4 py-4 sm:px-6">
-      {link ? (
-        <Link to={link} className="-m-1.5 block rounded-md p-1.5 hover:bg-nevoa-50">
-          {conteudo}
-        </Link>
-      ) : (
-        conteudo
-      )}
-    </div>
-  )
-}
 
-function Seletor({
-  id,
-  rotulo,
-  valor,
-  aoMudar,
-  opcoes,
-}: {
-  id: string
-  rotulo: string
-  valor: string
-  aoMudar: (v: string) => void
-  opcoes: [string, string][]
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-[13px] font-medium">
-        {rotulo}
-      </label>
-      <select
-        id={id}
-        value={valor}
-        onChange={(e) => aoMudar(e.target.value)}
-        className="min-h-11 w-full rounded-lg border border-linha bg-white px-3 text-sm outline-none focus:border-oceano focus:ring-2 focus:ring-oceano/25"
-      >
-        <option value="">Todas</option>
-        {opcoes.map(([v, r]) => (
-          <option key={v} value={v}>
-            {r}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
-}
 
 function Cabecalho({
   chave,
@@ -433,6 +368,32 @@ function BotaoPagina({
       disabled={desativado}
       aria-label={rotulo}
       className="grid size-9 place-items-center rounded-md hover:bg-nevoa-50 disabled:opacity-35 disabled:hover:bg-transparent"
+    >
+      {children}
+    </button>
+  )
+}
+
+function Chip({
+  ativo,
+  aoClicar,
+  titulo,
+  children,
+}: {
+  ativo: boolean
+  aoClicar: () => void
+  titulo?: string
+  children: ReactNode
+}) {
+  return (
+    <button
+      onClick={aoClicar}
+      title={titulo}
+      aria-pressed={ativo}
+      className={cx(
+        'tabular inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors',
+        ativo ? 'border-petroleo bg-petroleo text-white' : 'border-linha bg-white text-tinta hover:border-petroleo/40',
+      )}
     >
       {children}
     </button>

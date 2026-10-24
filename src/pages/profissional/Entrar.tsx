@@ -13,7 +13,7 @@ export function Entrar() {
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  if (sessao) return <Navigate to="/profissional/fila" replace />
+  if (sessao) return <Navigate to="/profissional/visao" replace />
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
@@ -25,7 +25,7 @@ export function Entrar() {
     setEnviando(true)
     try {
       await entrar(identificacao, senha)
-      const destino = (local.state as { de?: string } | null)?.de ?? '/profissional/fila'
+      const destino = (local.state as { de?: string } | null)?.de ?? '/profissional/visao'
       navegar(destino, { replace: true })
     } catch {
       setErro('Identificação ou senha incorretas.')

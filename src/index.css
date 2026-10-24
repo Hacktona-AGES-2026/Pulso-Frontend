@@ -22,10 +22,21 @@
   --color-urgente-50: #f5e1dc;
   --color-prioritario: #85560a;
   --color-prioritario-50: #f5e8cf;
-  --color-eletivo: #064f5f;
-  --color-eletivo-50: #d9e8eb;
-  --color-programavel: #4a6266;
-  --color-programavel-50: #e4e8e7;
+  /* 7 níveis da fila, do mais urgente ao mais estável */
+  --color-g1: #a32d2d;
+  --color-g1-50: #f7dedb;
+  --color-g2: #bf4a1f;
+  --color-g2-50: #fae3d8;
+  --color-g3: #a8620b;
+  --color-g3-50: #f8ead4;
+  --color-g4: #87700a;
+  --color-g4-50: #f3edc8;
+  --color-g5: #4f7a26;
+  --color-g5-50: #e3eed6;
+  --color-g6: #1d6f8a;
+  --color-g6-50: #d9eaf1;
+  --color-g7: #55628c;
+  --color-g7-50: #e3e6f1;
   --color-sucesso: #2c6b47;
   --color-sucesso-50: #dcebe1;
 }

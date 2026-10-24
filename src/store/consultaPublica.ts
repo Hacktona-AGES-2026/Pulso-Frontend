@@ -1,4 +1,4 @@
-import type { Prioridade } from '../data/types'
+import type { FilaCodigo } from '../data/fila'
 import { diasEntre } from '../lib/datas'
 import { soDigitos } from '../lib/documentos'
 import type { LinhaFila } from '../lib/prioridade'
@@ -14,7 +14,7 @@ export interface EncaminhamentoPublico {
   dataEncaminhamento: string
   diasEspera: number
   ultimaAtualizacao: string
-  prioridade: Prioridade
+  fila: FilaCodigo
   revisao?: { data: string; motivo: string }
 }
 
@@ -43,7 +43,7 @@ export function consultarEncaminhamento(
         dataEncaminhamento: p.dataEntrada,
         diasEspera: diasEntre(p.dataEntrada),
         ultimaAtualizacao: datas[datas.length - 1],
-        prioridade: p.prioridade,
+        fila: p.fila,
         revisao: revisao && { data: revisao.data, motivo: revisao.motivoPublico! },
       })
     }, 900)

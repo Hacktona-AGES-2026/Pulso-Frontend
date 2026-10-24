@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { ClipboardCheck, ListOrdered, LogOut } from 'lucide-react'
+import { ClipboardCheck, Database, LayoutGrid, ListOrdered, LogOut, PhoneCall } from 'lucide-react'
+import { PENDENCIAS } from '../data/pendencias'
 import { Marca, cx } from '../components/ui'
 import { useAuth } from '../store/auth'
 import { usePulso } from '../store/PulsoStore'
@@ -10,8 +11,11 @@ export function ProfissionalLayout() {
   const navegar = useNavigate()
 
   const itens = [
+    { para: '/profissional/visao', rotulo: 'Visão geral', icone: LayoutGrid },
     { para: '/profissional/fila', rotulo: 'Fila', icone: ListOrdered },
-    { para: '/profissional/revisoes', rotulo: 'Revisões pendentes', icone: ClipboardCheck, contador: pendentes.length },
+    { para: '/profissional/revisao', rotulo: 'Revisão humana', icone: ClipboardCheck, contador: pendentes.length },
+    { para: '/profissional/pendencias', rotulo: 'Pendências', icone: PhoneCall, contador: PENDENCIAS.length },
+    { para: '/profissional/dados', rotulo: 'Dados', icone: Database },
   ]
 
   return (
@@ -25,7 +29,7 @@ export function ProfissionalLayout() {
       <header className="sticky top-0 z-30 border-b border-linha bg-white">
         <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <Marca para="/profissional/fila" />
+            <Marca para="/profissional/visao" />
             <span className="hidden rounded bg-nevoa-50 px-2 py-0.5 text-xs font-semibold text-petroleo sm:inline">
               Regulação
             </span>

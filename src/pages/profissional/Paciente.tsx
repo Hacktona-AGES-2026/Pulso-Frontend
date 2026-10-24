@@ -5,20 +5,23 @@ import {
   ArrowLeft,
   ArrowRight,
   BedDouble,
-  CircleAlert,
   ClipboardList,
   FlaskConical,
   Microscope,
   Phone,
+  PhoneCall,
   SlidersHorizontal,
   Stethoscope,
   UserX,
 } from 'lucide-react'
 import { ModalAjuste } from '../../components/modais'
-import { Botao, Cartao, SeloPrioridade, cx } from '../../components/ui'
+import { Botao, Cartao, SeloFila, SeloSeveridade, cx } from '../../components/ui'
+import { ORDEM_FILAS, PRAZO_FILA } from '../../data/fila'
+import { PENDENCIAS } from '../../data/pendencias'
+import { rotuloMarcacao } from '../../data/revisao'
 import type { Decisao, EventoClinico, Paciente as TPaciente, SinalIA, TipoEvento } from '../../data/types'
 import { formatarData, formatarDataHora } from '../../lib/datas'
-import { LIMITES, PRIORIDADES, type LinhaFila } from '../../lib/prioridade'
+import { LIMITES, type LinhaFila } from '../../lib/prioridade'
 import { usePulso } from '../../store/PulsoStore'
 
 export function Paciente() {
@@ -40,19 +43,21 @@ export function Paciente() {
   }
 
   const p = linha.paciente
-  const revisao = pendentes.find((r) => r.pacienteId === p.id)
+  const marcacoes = pendentes.filter((m) => m.sid === p.id)
+  const pendencias = PENDENCIAS.filter((x) => x.sid === p.id)
   const delta = linha.posicaoChegada - linha.posicao
+  const divergente = (p.prioridadeManual === 'baixa' && ORDEM_FILAS.indexOf(p.fila) <= 3) || (p.prioridadeManual === 'alta' && ORDEM_FILAS.indexOf(p.fila) >= 6)
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
       <Link to="/profissional/fila" className="inline-flex items-center gap-1.5 text-sm font-medium text-petroleo hover:underline">
-        <ArrowLeft size={15} /> Fila priorizada
+        <ArrowLeft size={15} /> Fila
       </Link>
 
       <header className="mt-5 flex flex-col gap-6 border-b border-linha pb-7 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="tabular text-sm text-tinta-soft">
-            {p.id} · {p.idade} anos · {p.municipio}
+            {p.id} · {p.pacienteId} · {p.idade} anos · {p.municipio}
           </p>
           <h1 className="mt-1 text-[2.5rem] sm:text-5xl">{p.nome}</h1>
           <p className="mt-2 text-[15px]">
@@ -64,43 +69,27 @@ export function Paciente() {
         </div>
         <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
           <div>
-            <p className="text-[13px] text-tinta-soft">Posição na fila</p>
+            <p className="text-[13px] text-tinta-soft">Posição</p>
             <p className="tabular font-serif text-5xl font-semibold leading-none text-petroleo">{linha.posicao}</p>
             {delta !== 0 && (
               <p className="tabular mt-1 text-xs text-tinta-soft">
-                {delta > 0 ? '↑' : '↓'} era {linha.posicaoChegada} por ordem de chegada
+                {delta > 0 ? '↑' : '↓'} era {linha.posicaoChegada}
               </p>
             )}
           </div>
           <div>
-            <p className="mb-1.5 text-[13px] text-tinta-soft">Prioridade atual</p>
-            <SeloPrioridade p={p.prioridade} />
+            <p className="mb-1.5 text-[13px] text-tinta-soft">Nível</p>
+            <SeloFila f={p.fila} nome />
+            <p className="mt-1 text-xs text-tinta-soft">
+              Manual: {p.prioridadeManual}
+              {divergente && <span className="font-semibold text-g3"> · divergente</span>}
+            </p>
           </div>
           <Botao onClick={() => setAjustando(true)}>
-            <SlidersHorizontal size={16} /> Ajustar prioridade
+            <SlidersHorizontal size={16} /> Ajustar nível
           </Botao>
         </div>
       </header>
-
-      {revisao && (
-        <div className="mt-6 flex flex-col gap-3 rounded-xl border border-prioritario/30 bg-prioritario-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-3">
-            <CircleAlert size={19} className="mt-0.5 shrink-0 text-prioritario" />
-            <p className="text-sm">
-              <span className="font-semibold text-prioritario">
-                Revisão pendente: {revisao.de} → {revisao.para}.
-              </span>{' '}
-              {revisao.motivo}
-            </p>
-          </div>
-          <Link
-            to="/profissional/revisoes"
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-petroleo hover:underline"
-          >
-            Revisar <ArrowRight size={15} />
-          </Link>
-        </div>
-      )}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="space-y-6">
@@ -108,6 +97,34 @@ export function Paciente() {
           <Justificativa paciente={p} />
         </div>
         <div className="space-y-6">
+          {(marcacoes.length > 0 || pendencias.length > 0) && (
+            <Cartao className="p-6">
+              <h2 className="text-[1.75rem]">Sinalizações</h2>
+              <ul className="mt-4 space-y-3">
+                {marcacoes.map((m) => (
+                  <li key={m.id} className="flex items-start justify-between gap-3">
+                    <div>
+                      <SeloSeveridade s={m.severidade} />
+                      <p className="mt-0.5 text-sm font-semibold">{rotuloMarcacao(m.marcacao)}</p>
+                      <p className="text-[13px] text-tinta-soft">{m.descricao}</p>
+                    </div>
+                    <Link to="/profissional/revisao" className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-petroleo hover:underline">
+                      Revisar <ArrowRight size={14} />
+                    </Link>
+                  </li>
+                ))}
+                {pendencias.map((x) => (
+                  <li key={x.tipo} className="flex items-start gap-2.5">
+                    <PhoneCall size={15} className="mt-1 shrink-0 text-g6" />
+                    <div>
+                      <p className="text-sm font-semibold">{x.rotulo}</p>
+                      <p className="text-[13px] text-tinta-soft">{x.detalhe}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Cartao>
+          )}
           <LinhaDoTempo eventos={p.eventos} />
           <Historico decisoes={p.decisoes} />
         </div>
@@ -135,16 +152,13 @@ function PorQue({ linha }: { linha: LinhaFila }) {
       nome: 'Tempo de espera',
       valor: f.tempo,
       max: LIMITES.tempo,
-      detalhe: `${Math.round(f.percentualPrazo * 100)}% do prazo utilizado (${linha.dias} de ${PRIORIDADES[p.prioridade].prazo} dias)`,
+      detalhe: `${Math.round(f.percentualPrazo * 100)}% do prazo utilizado (${linha.dias} de ${PRAZO_FILA[p.fila]} dias)`,
     },
     { nome: 'Risco estimado', valor: f.risco, max: LIMITES.risco, detalhe: 'Condição geral e comorbidades' },
   ]
   return (
     <Cartao className="p-6">
       <h2 className="text-[1.75rem]">Por que está nesta posição?</h2>
-      <p className="mt-1 text-sm text-tinta-soft">
-        A classe {p.prioridade} define o grupo na fila; a pontuação ordena os pacientes dentro dele.
-      </p>
       <dl className="mt-6 space-y-4">
         {fatores.map((x) => (
           <div key={x.nome} className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 sm:grid-cols-[10rem_1fr_3rem] sm:items-center">
@@ -162,7 +176,6 @@ function PorQue({ linha }: { linha: LinhaFila }) {
       <div className="mt-6 flex items-end justify-between border-t border-linha pt-4">
         <div>
           <p className="text-sm font-semibold">Pontuação total</p>
-          <p className="text-xs text-tinta-soft">Apoio à decisão. Não substitui a avaliação clínica.</p>
         </div>
         <p className="tabular font-serif text-4xl font-semibold leading-none text-petroleo">{f.total}</p>
       </div>
@@ -179,7 +192,6 @@ function Justificativa({ paciente }: { paciente: TPaciente }) {
   return (
     <Cartao className="p-6">
       <h2 className="text-[1.75rem]">Justificativa médica</h2>
-      <p className="mt-1 text-sm text-tinta-soft">Texto original da solicitação.</p>
       <blockquote className="mt-5 border-l-2 border-bege pl-4 text-[15px] leading-relaxed">
         {destacar(paciente.justificativa, ativos)}
       </blockquote>
@@ -188,7 +200,6 @@ function Justificativa({ paciente }: { paciente: TPaciente }) {
       {paciente.sinais.length > 0 && (
         <div className="mt-6 border-t border-linha pt-5">
           <h3 className="font-sans text-sm font-semibold text-tinta">Sinais identificados por IA</h3>
-          <p className="mt-0.5 text-xs text-tinta-soft">Sugestões de leitura do texto. Confirme ou descarte cada uma.</p>
           <ul className="mt-3 space-y-2">
             {paciente.sinais.map((s) => (
               <li
@@ -316,7 +327,7 @@ const TIPO_DECISAO: Record<Decisao['tipo'], string> = {
   inclusao: 'Classificação inicial',
   ajuste: 'Ajuste manual',
   'revisao-confirmada': 'Revisão confirmada',
-  'revisao-mantida': 'Revisão recusada · prioridade mantida',
+  'revisao-mantida': 'Revisão recusada · nível mantido',
 }
 
 function Historico({ decisoes }: { decisoes: Decisao[] }) {

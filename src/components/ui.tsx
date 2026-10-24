@@ -12,8 +12,7 @@ import {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
-import type { Prioridade } from '../data/types'
-import { PRIORIDADES } from '../lib/prioridade'
+import { NOME_FILA, type FilaCodigo, type Severidade } from '../data/fila'
 
 export function cx(...c: unknown[]) {
   return c.filter(Boolean).join(' ')
@@ -168,28 +167,60 @@ export function AreaTexto({
 
 /* Prioridade ------------------------------------------------------- */
 
-const TOM: Record<Prioridade, string> = {
-  A: 'bg-urgente-50 text-urgente ring-urgente/25',
-  B: 'bg-prioritario-50 text-prioritario ring-prioritario/25',
-  C: 'bg-eletivo-50 text-eletivo ring-eletivo/20',
-  D: 'bg-programavel-50 text-programavel ring-programavel/20',
+/** Classes de cor por nível. Strings literais para o Tailwind encontrar. */
+export const TOM_FILA: Record<FilaCodigo, { selo: string; barra: string; texto: string }> = {
+  G1a: { selo: 'bg-g1-50 text-g1 ring-g1/30', barra: 'bg-g1', texto: 'text-g1' },
+  G1b: { selo: 'bg-g1-50 text-g1 ring-g1/30', barra: 'bg-g1', texto: 'text-g1' },
+  G2: { selo: 'bg-g2-50 text-g2 ring-g2/30', barra: 'bg-g2', texto: 'text-g2' },
+  G3: { selo: 'bg-g3-50 text-g3 ring-g3/30', barra: 'bg-g3', texto: 'text-g3' },
+  G4: { selo: 'bg-g4-50 text-g4 ring-g4/30', barra: 'bg-g4', texto: 'text-g4' },
+  G5: { selo: 'bg-g5-50 text-g5 ring-g5/30', barra: 'bg-g5', texto: 'text-g5' },
+  G6: { selo: 'bg-g6-50 text-g6 ring-g6/30', barra: 'bg-g6', texto: 'text-g6' },
+  G7: { selo: 'bg-g7-50 text-g7 ring-g7/30', barra: 'bg-g7', texto: 'text-g7' },
 }
 
-export function SeloPrioridade({ p, compacto }: { p: Prioridade; compacto?: boolean }) {
+export function SeloFila({ f, nome, compacto }: { f: FilaCodigo; nome?: boolean; compacto?: boolean }) {
   return (
     <span
+      title={NOME_FILA[f]}
       className={cx(
         'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md font-semibold ring-1 ring-inset',
         compacto ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-[13px]',
-        TOM[p],
+        TOM_FILA[f].selo,
       )}
     >
-      <span className="font-serif text-[1.05em] font-bold leading-none">{p}</span>
-      <span aria-hidden="true" className="opacity-50">·</span>
-      {PRIORIDADES[p].rotulo}
+      <span className="tabular font-bold">{f}</span>
+      {nome && (
+        <>
+          <span aria-hidden="true" className="opacity-50">·</span>
+          {NOME_FILA[f]}
+        </>
+      )}
+      {!nome && <span className="sr-only">{NOME_FILA[f]}</span>}
     </span>
   )
 }
+
+const TOM_SEVERIDADE: Record<Severidade, { ponto: string; texto: string; rotulo: string }> = {
+  alta: { ponto: 'bg-g1', texto: 'text-g1', rotulo: 'Alta' },
+  media: { ponto: 'bg-g3', texto: 'text-g3', rotulo: 'Média' },
+  baixa: { ponto: 'bg-g6', texto: 'text-g6', rotulo: 'Baixa' },
+  informativa: { ponto: 'bg-tinta-soft', texto: 'text-tinta-soft', rotulo: 'Informativa' },
+}
+
+export function SeloSeveridade({ s }: { s: Severidade }) {
+  const t = TOM_SEVERIDADE[s]
+  return (
+    <span className={cx('inline-flex items-center gap-1.5 text-xs font-semibold', t.texto)}>
+      <span className={cx('size-2 rounded-full', t.ponto)} aria-hidden="true" />
+      {t.rotulo}
+    </span>
+  )
+}
+
+export const ROTULO_SEVERIDADE = Object.fromEntries(
+  Object.entries(TOM_SEVERIDADE).map(([k, v]) => [k, v.rotulo]),
+) as Record<Severidade, string>
 
 /* Barra de prazo --------------------------------------------------- */
 
@@ -203,7 +234,7 @@ export function BarraPrazo({
   compacta?: boolean
 }) {
   const pct = Math.round(percentual * 100)
-  const tom = pct >= 100 ? 'bg-urgente' : pct >= 75 ? 'bg-prioritario' : 'bg-oceano'
+  const tom = pct >= 100 ? 'bg-g1' : pct >= 75 ? 'bg-g3' : 'bg-oceano'
   return (
     <div className={largura}>
       <div
