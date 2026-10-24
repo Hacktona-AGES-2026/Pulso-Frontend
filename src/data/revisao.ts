@@ -1,31 +1,199 @@
-import type { FilaCodigo, Severidade } from "./fila";
+import type { Marcacao } from './types'
 
-export interface MarcacaoItem {
-  sid: string;
-  paciente: string;
-  fila: FilaCodigo;
-  marcacao: string;
-  descricao: string;
-  severidade: Severidade;
+// Marcações que pedem decisão do regulador.
+// As que trazem `proposta` mudam o nível do paciente quando confirmadas.
+
+export const MARCACOES: Marcacao[] = [
+  {
+    id: 'MRC-0418',
+    sid: 'SOL-2026-00412',
+    marcacao: 'deterioracao_recente',
+    descricao: 'Pronto-socorro em 03/10/2026 e piora relatada da dor.',
+    severidade: 'alta',
+    evidencias: [
+      'Pronto-socorro em 03/10/2026: colecistite aguda tratada clinicamente.',
+      'Contato telefônico em 04/10/2026: piora da dor e intolerância alimentar.',
+    ],
+    proposta: { de: 'G6', para: 'G4', motivoPublico: 'atendimento no pronto-socorro' },
+    data: '2026-10-05',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0421',
+    sid: 'SOL-2026-00037',
+    marcacao: 'progressao_oncologica',
+    descricao: 'Lesão renal cresceu na tomografia de controle.',
+    severidade: 'alta',
+    evidencias: ['Tomografia em 09/10/2026: de 3,1 para 4,2 cm.'],
+    proposta: { de: 'G2', para: 'G1a', motivoPublico: 'resultado de exame recente' },
+    data: '2026-10-10',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0423',
+    sid: 'SOL-2026-00079',
+    marcacao: 'suspeita_oncologica',
+    descricao: 'Punção com resultado suspeito para neoplasia folicular.',
+    severidade: 'alta',
+    evidencias: ['Punção em 12/10/2026: Bethesda IV.'],
+    proposta: { de: 'G6', para: 'G3', motivoPublico: 'resultado de exame recente' },
+    data: '2026-10-13',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0402',
+    sid: 'SOL-2024-00071',
+    marcacao: 'atualizar_cid',
+    descricao: 'Biópsia positiva, mas CID ainda benigno.',
+    severidade: 'alta',
+    evidencias: ['AP de 12/06/2024: carcinoma ductal invasivo, grau II.'],
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0403',
+    sid: 'SOL-2023-00088',
+    marcacao: 'atualizar_cid',
+    descricao: 'AP com carcinoma; CID cadastrado como D44.',
+    severidade: 'alta',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0404',
+    sid: 'SOL-2025-00075',
+    marcacao: 'conflito_laudos',
+    descricao: 'Biópsia positiva e revisão de lâmina negativa.',
+    severidade: 'alta',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0405',
+    sid: 'SOL-2022-00047',
+    marcacao: 'somente_texto',
+    descricao: 'Nível sustentado só pelo texto da justificativa.',
+    severidade: 'alta',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0426',
+    sid: 'SOL-2026-00063',
+    marcacao: 'deterioracao_recente',
+    descricao: 'Encarceramento reduzido no pronto-socorro.',
+    severidade: 'media',
+    evidencias: ['Pronto-socorro em 07/10/2026: redução manual.'],
+    proposta: { de: 'G6', para: 'G4', motivoPublico: 'atendimento no pronto-socorro' },
+    data: '2026-10-08',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0429',
+    sid: 'SOL-2025-00211',
+    marcacao: 'carga_sintomas',
+    descricao: 'Queda em domicílio e perda de marcha independente.',
+    severidade: 'media',
+    evidencias: ['Pronto-socorro em 02/10/2026 após queda.', 'Contato em 10/10/2026: cadeira de rodas.'],
+    proposta: { de: 'G6', para: 'G5', motivoPublico: 'piora da mobilidade' },
+    data: '2026-10-11',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0406',
+    sid: 'SOL-2022-00042',
+    marcacao: 'confirmar_saida_g4',
+    descricao: 'Piora com mais de 180 dias.',
+    severidade: 'media',
+    proposta: { de: 'G4', para: 'G6', motivoPublico: 'reavaliação da equipe de regulação' },
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0407',
+    sid: 'SOL-2023-00051',
+    marcacao: 'texto_antigo',
+    descricao: 'Justificativa com mais de 365 dias.',
+    severidade: 'media',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0408',
+    sid: 'SOL-2024-00112',
+    marcacao: 'justificativa_pobre',
+    descricao: 'Justificativa com menos de 40 caracteres.',
+    severidade: 'media',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0409',
+    sid: 'SOL-2022-00018',
+    marcacao: 'dados_faltantes',
+    descricao: 'Dor ou limitação funcional vazias.',
+    severidade: 'media',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0431',
+    sid: 'SOL-2026-00141',
+    marcacao: 'melhora_relatada',
+    descricao: 'Sem novos sangramentos após tratamento clínico.',
+    severidade: 'baixa',
+    evidencias: ['Contato em 13/10/2026.'],
+    proposta: { de: 'G5', para: 'G6', motivoPublico: 'melhora dos sintomas' },
+    data: '2026-10-14',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0410',
+    sid: 'SOL-2023-00010',
+    marcacao: 'flag_divergente',
+    descricao: 'Prioridade manual diferente dos dados clínicos.',
+    severidade: 'baixa',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0411',
+    sid: 'SOL-2022-00002',
+    marcacao: 'prazo_estourado',
+    descricao: 'Espera acima de 2× o prazo do nível.',
+    severidade: 'informativa',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+  {
+    id: 'MRC-0412',
+    sid: 'SOL-2022-00005',
+    marcacao: 'alerta_prazo',
+    descricao: 'Espera já passou de 80% do prazo.',
+    severidade: 'informativa',
+    data: '2026-10-23',
+    status: 'pendente',
+  },
+]
+
+const ROTULOS: Record<string, string> = {
+  deterioracao_recente: 'Deterioração recente',
+  progressao_oncologica: 'Progressão oncológica',
+  suspeita_oncologica: 'Suspeita oncológica',
+  carga_sintomas: 'Carga de sintomas',
+  melhora_relatada: 'Melhora relatada',
+  atualizar_cid: 'Atualizar CID',
+  conflito_laudos: 'Conflito de laudos',
+  somente_texto: 'Somente texto',
+  confirmar_saida_g4: 'Confirmar saída do G4',
+  texto_antigo: 'Texto antigo',
+  justificativa_pobre: 'Justificativa pobre',
+  dados_faltantes: 'Dados faltantes',
+  flag_divergente: 'Prioridade divergente',
+  prazo_estourado: 'Prazo estourado',
+  alerta_prazo: 'Alerta de prazo',
 }
 
-export const MARCACOES: MarcacaoItem[] = [
-  { sid: "SOL-2024-00071", paciente: "Helena Duarte", fila: "G2", marcacao: "atualizar_cid", descricao: "Biópsia positiva, mas CID ainda benigno", severidade: "alta" },
-  { sid: "SOL-2023-00088", paciente: "Rafael Nunes", fila: "G2", marcacao: "atualizar_cid", descricao: "AP: carcinoma — CID cadastrado como D48", severidade: "alta" },
-  { sid: "SOL-2023-00045", paciente: "João Baptista", fila: "G1b", marcacao: "conflito_laudos", descricao: "Biópsia positiva e negativa no mesmo paciente", severidade: "alta" },
-  { sid: "SOL-2022-00047", paciente: "Marcos Vidal", fila: "G1b", marcacao: "somente_texto", descricao: "Fila sustentada só por texto da justificativa", severidade: "alta" },
-  { sid: "SOL-2022-00042", paciente: "Clara Pons", fila: "G4", marcacao: "confirmar_saida_g4", descricao: "Piora com mais de 180 dias — confirmar com regulador", severidade: "media" },
-  { sid: "SOL-2023-00045b", paciente: "Edu Farias", fila: "G1b", marcacao: "texto_antigo", descricao: "Justificativa com mais de 365 dias", severidade: "media" },
-  { sid: "SOL-2024-00112", paciente: "Vera Lúcia", fila: "G2", marcacao: "justificativa_pobre", descricao: "Justificativa com menos de 40 caracteres", severidade: "media" },
-  { sid: "SOL-2022-00018", paciente: "Beatriz Antunes", fila: "G4", marcacao: "dados_faltantes", descricao: "Dor ou limitação funcional vazias", severidade: "media" },
-  { sid: "SOL-2023-00010", paciente: "Roberto Simões", fila: "G2", marcacao: "flag_divergente", descricao: "Flag manual diferente dos dados clínicos", severidade: "baixa" },
-  { sid: "SOL-2022-00002", paciente: "Antônio Ferreira", fila: "G1a", marcacao: "prazo_estourado", descricao: "Espera acima de 2× o prazo da fila", severidade: "informativa" },
-  { sid: "SOL-2022-00005", paciente: "Paulo Cardoso", fila: "G6", marcacao: "alerta_prazo", descricao: "Espera já passou de 80% do prazo", severidade: "informativa" },
-];
-
-export const CONTAGEM_SEVERIDADE = {
-  alta: MARCACOES.filter((m) => m.severidade === "alta").length,
-  media: MARCACOES.filter((m) => m.severidade === "media").length,
-  baixa: MARCACOES.filter((m) => m.severidade === "baixa").length,
-  informativa: MARCACOES.filter((m) => m.severidade === "informativa").length,
-};
+export function rotuloMarcacao(codigo: string) {
+  return ROTULOS[codigo] ?? codigo.replace(/_/g, ' ')
+}

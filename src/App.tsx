@@ -1,28 +1,79 @@
-import Sidebar from "./components/Sidebar";
-import { useRota } from "./router";
-import VisaoGeral from "./screens/VisaoGeral";
-import Fila from "./screens/Fila";
-import Agenda from "./screens/Agenda";
-import Mudancas from "./screens/Mudancas";
-import RevisaoHumana from "./screens/RevisaoHumana";
-import Pendencias from "./screens/Pendencias";
-import Dados from "./screens/Dados";
+import { useEffect } from 'react'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { PublicoLayout } from './layouts/PublicoLayout'
+import { ProfissionalLayout } from './layouts/ProfissionalLayout'
+import { Consulta } from './pages/publico/Consulta'
+import { ComoFunciona } from './pages/publico/ComoFunciona'
+import { Entrar } from './pages/profissional/Entrar'
+import { Fila } from './pages/profissional/Fila'
+import { Paciente } from './pages/profissional/Paciente'
+import { RevisaoHumana } from './pages/profissional/RevisaoHumana'
+import { Pendencias } from './pages/profissional/Pendencias'
+import { Dados } from './pages/profissional/Dados'
+import { VisaoGeral } from './pages/profissional/VisaoGeral'
+import { RotaProtegida } from './store/auth'
+
+const TITULOS: [RegExp, string][] = [
+  [/^\/como-funciona/, 'Como funciona · Pulso'],
+  [/^\/profissional\/entrar/, 'Entrada profissional · Pulso'],
+  [/^\/profissional\/fila/, 'Fila priorizada · Pulso'],
+  [/^\/profissional\/pacientes/, 'Paciente · Pulso'],
+  [/^\/profissional\/visao/, 'Visão geral · Pulso'],
+  [/^\/profissional\/revisao/, 'Revisão humana · Pulso'],
+  [/^\/profissional\/pendencias/, 'Pendências · Pulso'],
+  [/^\/profissional\/dados/, 'Dados · Pulso'],
+  [/^\/$/, 'Acompanhe sua cirurgia · Pulso'],
+]
+
+function AoNavegar() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    document.title = TITULOS.find(([re]) => re.test(pathname))?.[1] ?? 'Pulso'
+  }, [pathname])
+  return null
+}
 
 export default function App() {
-  const { rota, navegar } = useRota("visao");
-
   return (
-    <div className="app">
-      <Sidebar rota={rota} navegar={navegar} />
-      <main className="main">
-        {rota === "visao" && <VisaoGeral />}
-        {rota === "fila" && <Fila />}
-        {rota === "agenda" && <Agenda />}
-        {rota === "mudancas" && <Mudancas />}
-        {rota === "revisao" && <RevisaoHumana />}
-        {rota === "pendencias" && <Pendencias />}
-        {rota === "dados" && <Dados />}
-      </main>
+    <>
+      <AoNavegar />
+      <Routes>
+        <Route element={<PublicoLayout />}>
+          <Route index element={<Consulta />} />
+          <Route path="como-funciona" element={<ComoFunciona />} />
+          <Route path="*" element={<NaoEncontrada />} />
+        </Route>
+
+        <Route path="profissional/entrar" element={<Entrar />} />
+        <Route
+          path="profissional"
+          element={
+            <RotaProtegida>
+              <ProfissionalLayout />
+            </RotaProtegida>
+          }
+        >
+          <Route index element={<Navigate to="visao" replace />} />
+          <Route path="visao" element={<VisaoGeral />} />
+          <Route path="fila" element={<Fila />} />
+          <Route path="pacientes/:id" element={<Paciente />} />
+          <Route path="revisao" element={<RevisaoHumana />} />
+          <Route path="pendencias" element={<Pendencias />} />
+          <Route path="dados" element={<Dados />} />
+        </Route>
+      </Routes>
+    </>
+  )
+}
+
+function NaoEncontrada() {
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+      <h1 className="text-5xl">Página não encontrada</h1>
+      <Link to="/" className="mt-6 inline-block text-sm font-semibold text-petroleo hover:underline">
+        Voltar ao início
+      </Link>
     </div>
-  );
+  )
 }
