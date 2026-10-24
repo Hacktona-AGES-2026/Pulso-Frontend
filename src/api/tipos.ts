@@ -75,6 +75,18 @@ export interface Explicacao {
   em_cache: boolean
 }
 
+/** POST /eventos/processar: o que os eventos lidos causaram na caixa do médico */
+export interface ResultadoProcessamento {
+  eventos: number
+  /** pedidos novos abertos */
+  aberta: number
+  atualizada: number
+  obsoleta: number
+  sem_mudanca: number
+  /** eventos que ainda faltam processar */
+  pendentes: number
+}
+
 export interface ResultadoDecisao {
   mudanca_id: number
   status: 'aprovada' | 'rejeitada'
@@ -164,14 +176,6 @@ export interface Resumo {
   mudancas: Record<string, number>
   prazo_estourado: number
   pendencias: number
-}
-
-export interface PendenciaApi {
-  solicitacao_id: string
-  paciente_nome: string
-  fila: FilaCodigo
-  posicao: number
-  pendencias: string[]
 }
 
 export interface MarcacaoApi {

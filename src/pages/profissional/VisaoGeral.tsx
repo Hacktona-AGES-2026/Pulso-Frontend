@@ -62,12 +62,12 @@ export function VisaoGeral() {
               ) : !altas.dados ? (
                 <Carregando />
               ) : (
-                <ul className="mt-4 max-h-[26rem] divide-y divide-linha overflow-y-auto">
+                <ul className="-mx-2 mt-4 max-h-[26rem] divide-y divide-linha overflow-y-auto overflow-x-hidden">
                   {altas.dados.map((m) => (
                     <li key={m.solicitacao_id + m.marcacao}>
                       <Link
                         to={`/profissional/pacientes/${m.solicitacao_id}`}
-                        className="-mx-2 flex items-start gap-3 rounded-md px-2 py-3 hover:bg-areia"
+                        className="flex items-start gap-3 rounded-md px-2 py-3 hover:bg-areia"
                       >
                         <span className="mt-2 size-2 shrink-0 rounded-full bg-g1" aria-hidden="true" />
                         <span className="min-w-0 flex-1">

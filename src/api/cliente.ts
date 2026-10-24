@@ -5,8 +5,8 @@ import type {
   MarcacaoApi,
   Medico,
   Mudanca,
-  PendenciaApi,
   ResultadoDecisao,
+  ResultadoProcessamento,
   Resumo,
 } from './tipos'
 
@@ -58,8 +58,7 @@ export const api = {
   decidir: (id: number, corpo: { decisao: 'aprovar' | 'rejeitar'; medico_id: number; motivo: string }) =>
     requisitar<ResultadoDecisao>(`/mudancas/${id}/decisao`, { method: 'POST', body: JSON.stringify(corpo) }),
   processarEventos: (limite = 1) =>
-    requisitar<unknown>(`/eventos/processar?limite=${limite}`, { method: 'POST' }),
-  pendencias: () => requisitar<PendenciaApi[]>('/pendencias'),
+    requisitar<ResultadoProcessamento>(`/eventos/processar?limite=${limite}`, { method: 'POST' }),
   marcacoes: (severidade?: string) => requisitar<MarcacaoApi[]>(`/marcacoes${severidade ? `?severidade=${severidade}` : ''}`),
   medicos: () => requisitar<Medico[]>('/medicos'),
 }
