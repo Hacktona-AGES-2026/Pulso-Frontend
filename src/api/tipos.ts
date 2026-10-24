@@ -45,12 +45,17 @@ export interface Mudanca {
   fila_atual: FilaCodigo
   fila_proposta: FilaCodigo | null
   posicao_atual: number | null
+  /** estimativa se só este pedido for aprovado (vários pedidos podem cair na mesma) */
   posicao_proposta: number | null
+  /** posição na fila recomendada de agora, com todos os pedidos aprovados (só pendentes) */
+  posicao_recomendada: number | null
   motivo: string
   evidencias: Evidencia[]
   evento_id: string | null
   oncologico: boolean
   criada_em: string
+  /** muda quando um evento novo atualiza o pedido (e, com ele, os fatos da explicação) */
+  atualizada_em: string
   medico_id: number | null
   medico_nome: string | null
   decidida_em: string | null
@@ -151,7 +156,7 @@ export interface Detalhe {
     pendencias: string[]
   } | null
   eventos: EventoApi[]
-  mudancas: Omit<Mudanca, 'paciente_nome' | 'procedimento' | 'solicitacao_id' | 'oncologico' | 'posicao_atual' | 'posicao_proposta'>[]
+  mudancas: Omit<Mudanca, 'paciente_nome' | 'procedimento' | 'solicitacao_id' | 'oncologico' | 'posicao_atual' | 'posicao_proposta' | 'posicao_recomendada' | 'atualizada_em'>[]
   historico: {
     mudanca_id: number
     acao: 'mudanca' | 'saida'
