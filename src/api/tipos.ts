@@ -161,14 +161,6 @@ export interface Resumo {
   pendencias: number
 }
 
-export interface PendenciaApi {
-  solicitacao_id: string
-  paciente_nome: string
-  fila: FilaCodigo
-  posicao: number
-  pendencias: string[]
-}
-
 export interface MarcacaoApi {
   solicitacao_id: string
   paciente_nome: string
