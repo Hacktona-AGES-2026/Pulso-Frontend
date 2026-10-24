@@ -211,10 +211,22 @@ function Resultado({ dados, aoVoltar }: { dados: EncaminhamentoPublico; aoVoltar
         <div className="space-y-6">
           <Cartao className="p-6 sm:p-7">
             <h2 className="text-2xl">Prioridade</h2>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span className={cx('tabular rounded-md px-2.5 py-1 text-sm font-semibold ring-1 ring-inset', TOM_FILA[dados.fila].selo)}>
-                Nível {info.nivel} de 7
-              </span>
+            <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-4">
+              <div>
+                <p className="text-[13px] text-tinta-soft">Nível</p>
+                <span
+                  className={cx(
+                    'tabular mt-1 inline-block rounded-md px-2.5 py-1 text-sm font-semibold ring-1 ring-inset',
+                    TOM_FILA[dados.fila].selo,
+                  )}
+                >
+                  Nível {info.nivel} de 7
+                </span>
+              </div>
+              <div>
+                <p className="text-[13px] text-tinta-soft">Sua posição na fila</p>
+                <p className="tabular font-titulo text-4xl font-bold leading-none text-petroleo">{dados.posicao}º</p>
+              </div>
             </div>
             <p className="mt-3 text-[15px]">{info.texto}</p>
             {dados.revisao && (

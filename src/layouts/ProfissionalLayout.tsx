@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom'
-import { ClipboardCheck, Database, LayoutGrid, ListOrdered, LogOut, PhoneCall } from 'lucide-react'
+import { ClipboardCheck, LayoutGrid, ListOrdered, LogOut, PhoneCall } from 'lucide-react'
 import { api } from '../api/cliente'
 import type { Resumo } from '../api/tipos'
 import { useApi } from '../api/useApi'
@@ -33,7 +33,6 @@ export function ProfissionalLayout() {
     { para: '/profissional/fila', rotulo: 'Fila', icone: ListOrdered },
     { para: '/profissional/revisao', rotulo: 'Revisão humana', icone: ClipboardCheck, contador: pedidosPendentes(resumo) },
     { para: '/profissional/pendencias', rotulo: 'Pendências', icone: PhoneCall, contador: resumo?.pendencias },
-    { para: '/profissional/dados', rotulo: 'Dados', icone: Database },
   ]
 
   return (

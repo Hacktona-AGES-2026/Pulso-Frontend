@@ -57,6 +57,17 @@ export interface Mudanca {
   motivo_decisao: string | null
   paciente_nome: string
   procedimento: string
+  /** Texto em linguagem clara gerado pelo backend (LLM), quando já existe */
+  explicacao?: string | null
+}
+
+/** GET /solicitacoes/{id}/explicacao e /mudancas/{id}/explicacao */
+export interface Explicacao {
+  alvo: 'solicitacao' | 'mudanca'
+  alvo_id: string
+  texto: string
+  fonte: 'llm' | 'template'
+  em_cache: boolean
 }
 
 export interface ResultadoDecisao {
@@ -165,26 +176,6 @@ export interface MarcacaoApi {
   posicao: number
   marcacao: string
   severidade: Severidade
-}
-
-export interface DadosApi {
-  execucoes: {
-    id: number
-    tipo: string
-    data_referencia: string
-    regras_versao: string
-    relatorio: { problema: string; quantidade: number; acao: string }[] | null
-    iniciada_em: string
-    terminada_em: string | null
-  }[]
-  quarentena: { evento_id: string; motivo: string; solicitacao_id: string; tipo_evento: string; data_evento: string }[]
-  fora_da_fila: {
-    solicitacao_id: string
-    paciente_nome: string
-    status: 'duplicata' | 'saiu'
-    duplicata_de: string | null
-    motivo_status: string | null
-  }[]
 }
 
 export interface Medico {

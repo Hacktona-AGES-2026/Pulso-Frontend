@@ -5,7 +5,7 @@ import type { LinhaFila } from '../lib/prioridade'
 
 /**
  * Único recorte de dados que sai para a área pública.
- * Nada de posição, pontuação, justificativa clínica ou dados de terceiros.
+ * Nada de pontuação, justificativa clínica ou dados de terceiros.
  */
 export interface EncaminhamentoPublico {
   nome: string
@@ -15,6 +15,8 @@ export interface EncaminhamentoPublico {
   diasEspera: number
   ultimaAtualizacao: string
   fila: FilaCodigo
+  /** Posição do paciente na fila geral */
+  posicao: number
   revisao?: { data: string; motivo: string }
 }
 
@@ -27,10 +29,9 @@ export function consultarEncaminhamento(
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       if (!navigator.onLine) return reject(new Error('sem conexão'))
-      const p = fila
-        .map((l) => l.paciente)
-        .find((p) => (p.cpf === doc || p.cns === doc) && p.nascimento === nascimento)
-      if (!p) return resolve(null)
+      const linha = fila.find(({ paciente: p }) => (p.cpf === doc || p.cns === doc) && p.nascimento === nascimento)
+      if (!linha) return resolve(null)
+      const p = linha.paciente
 
       const revisao = [...p.decisoes]
         .reverse()
@@ -44,6 +45,7 @@ export function consultarEncaminhamento(
         diasEspera: diasEntre(p.dataEntrada),
         ultimaAtualizacao: datas[datas.length - 1],
         fila: p.fila,
+        posicao: linha.posicao,
         revisao: revisao && { data: revisao.data, motivo: revisao.motivoPublico! },
       })
     }, 900)
