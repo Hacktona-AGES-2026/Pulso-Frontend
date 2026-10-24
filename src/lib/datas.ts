@@ -39,3 +39,10 @@ export function idadeEm(nascimento: string, ref: string = HOJE) {
   const [ra, rm, rd] = ref.split('-').map(Number)
   return ra - a - (rm < m || (rm === m && rd < d) ? 1 : 0)
 }
+
+/** Timestamp com fuso (vindo da API) no horário local: dd/mm/aaaa às hh:mm. */
+export function formatarInstante(iso: string) {
+  const d = new Date(iso)
+  const dd = (n: number) => String(n).padStart(2, '0')
+  return `${dd(d.getDate())}/${dd(d.getMonth() + 1)}/${d.getFullYear()} às ${dd(d.getHours())}:${dd(d.getMinutes())}`
+}

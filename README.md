@@ -3,52 +3,55 @@
 Plataforma de regulação da fila de cirurgias eletivas. Duas áreas separadas:
 
 - **Pública** (`/`, `/como-funciona`): o paciente consulta só o próprio encaminhamento com CPF ou Cartão Nacional de Saúde e data de nascimento.
-- **Profissional** (`/profissional/*`): médicos reguladores autenticados acessam Visão geral, Fila, Revisão humana, Pendências e Dados.
+- **Profissional** (`/profissional/*`): médicos reguladores acessam Visão geral, Fila, Revisão humana, Pendências e Dados, lendo e decidindo direto na API do [Pulso-Backend](../Pulso-Backend).
 
 ## Rodar
+
+1. Suba o backend (no repositório `Pulso-Backend`, branch `integracao`): banco, pipeline e API em `http://localhost:8000`. O passo a passo está no README de lá.
+2. No front:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre em `http://localhost:5173`. Para gerar a versão de produção: `npm run build`.
+Abre em `http://localhost:5173`. Para apontar para outra API, copie `.env.example` para `.env` e ajuste `VITE_API_URL`.
+
+**Entrada profissional:** use o CRM de um médico cadastrado no backend (ex.: `CRM-RS 900001`, lista em `GET /medicos`) e qualquer senha com 4+ caracteres. O backend ainda não tem autenticação; o CRM identifica quem decide.
 
 ## Stack
 
 React 19, React Router, Tailwind CSS 4, Vite, TypeScript.
 
-## Como a fila é ordenada
+## Integração com a API
 
-`src/data/fila.ts` e `src/lib/prioridade.ts`
+`src/api/` — cliente (`cliente.ts`), tipos das respostas (`tipos.ts`), hook de carregamento (`useApi.ts`) e rótulos dos códigos do motor (`rotulos.ts`).
 
-1. **Nível** — 7 níveis (G1 dividido em a/b), cada um com prazo de referência:
+| Tela | Endpoints |
+| --- | --- |
+| Visão geral | `GET /resumo`, `GET /marcacoes?severidade=alta` |
+| Fila | `GET /fila?modo=oficial` |
+| Paciente | `GET /solicitacoes/{id}` |
+| Revisão humana | `GET /mudancas`, `POST /mudancas/{id}/decisao`, `POST /eventos/processar` |
+| Pendências | `GET /pendencias` |
+| Dados | `GET /dados`, `GET /resumo` |
+| Entrada | `GET /medicos` |
 
-   | Nível | Nome | Prazo |
-   | --- | --- | --- |
-   | G1a | Oncológico em progressão | 15 d |
-   | G1b | Agudo não oncológico | 15 d |
-   | G2 | Oncológico confirmado | 21 d |
-   | G3 | Suspeita oncológica | 60 d |
-   | G4 | Deterioração recente | 60 d |
-   | G5 | Alta carga de sintomas | 60 d |
-   | G6 | Sintomático moderado | 180 d |
-   | G7 | Eletivo estável | 360 d |
+A fila oficial só muda quando o médico aprova um pedido na Revisão humana; a regra de ouro é conferida pelo backend a cada aprovação.
 
-2. Dentro do nível, **pontuação** = gravidade (0–40) + piora recente (0–25) + tempo de espera (0–20, % do prazo) + risco (0–15).
-3. **Regra de ouro:** CID iniciado por `C` não pode ir abaixo de G3; a Visão geral verifica a fila inteira e mostra o resultado.
+## Níveis da fila
 
-O sistema só **propõe** mudanças (Revisão humana); o regulador confirma ou mantém, sempre com justificativa.
+| Nível | Nome | Prazo |
+| --- | --- | --- |
+| G1a | Oncológico em progressão | 15 d |
+| G1b | Agudo não oncológico | 15 d |
+| G2 | Oncológico confirmado | 21 d |
+| G3 | Suspeita oncológica | 60 d |
+| G4 | Deterioração recente | 60 d |
+| G5 | Alta carga de sintomas | 60 d |
+| G6 | Sintomático moderado | 180 d |
+| G7 | Eletivo estável | 360 d |
 
-## Dados
+## Área pública
 
-`src/data/` — pacientes acompanhados de perto + o restante da fila gerado de forma determinística (897 ativas, distribuídas pelos níveis). Marcações de revisão em `revisao.ts`, pendências operacionais em `pendencias.ts` e o resumo da carga em `dados.ts`. Data de referência: 23/10/2026.
-
-As decisões ficam registradas no `localStorage` (`pulso:decisoes:v2`) e são reaplicadas sobre a base, então a área pública e a profissional sempre leem o mesmo estado. Para voltar ao estado inicial, apague essa chave.
-
-### Fluxo principal (Maria Oliveira)
-
-1. Consulta pública: CPF `529.982.247-25`, nascimento `14/03/1974` → nível 6 de 7.
-2. Entrar como profissional (qualquer identificação e senha com 4+ caracteres).
-3. Revisão humana → Maria Oliveira (G6 → G4) → Confirmar alteração com justificativa.
-4. A fila recalcula e a consulta pública passa a mostrar nível 4 de 7 com a data da revisão.
+O dataset não tem CPF nem data de nascimento, então a consulta pública ainda usa dados locais (`src/data/`, `src/store/`). Para testar: CPF `529.982.247-25`, nascimento `14/03/1974`.

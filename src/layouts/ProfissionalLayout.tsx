@@ -1,20 +1,38 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useOutletContext } from 'react-router-dom'
 import { ClipboardCheck, Database, LayoutGrid, ListOrdered, LogOut, PhoneCall } from 'lucide-react'
-import { PENDENCIAS } from '../data/pendencias'
+import { api } from '../api/cliente'
+import type { Resumo } from '../api/tipos'
+import { useApi } from '../api/useApi'
 import { Marca, cx } from '../components/ui'
 import { useAuth } from '../store/auth'
-import { usePulso } from '../store/PulsoStore'
+
+interface ContextoProfissional {
+  resumo: Resumo | null
+  erroResumo: string | null
+  recarregarResumo: () => void
+  medicoId: number
+}
+
+/** Resumo da API compartilhado pelas telas (contadores do menu, indicadores). */
+export const useProfissional = () => useOutletContext<ContextoProfissional>()
+
+export function pedidosPendentes(r: Resumo | null) {
+  if (!r) return undefined
+  return Object.entries(r.mudancas)
+    .filter(([k]) => k.endsWith('/pendente'))
+    .reduce((s, [, n]) => s + n, 0)
+}
 
 export function ProfissionalLayout() {
   const { sessao, sair } = useAuth()
-  const { pendentes } = usePulso()
   const navegar = useNavigate()
+  const { dados: resumo, erro: erroResumo, recarregar } = useApi(api.resumo)
 
   const itens = [
     { para: '/profissional/visao', rotulo: 'Visão geral', icone: LayoutGrid },
     { para: '/profissional/fila', rotulo: 'Fila', icone: ListOrdered },
-    { para: '/profissional/revisao', rotulo: 'Revisão humana', icone: ClipboardCheck, contador: pendentes.length },
-    { para: '/profissional/pendencias', rotulo: 'Pendências', icone: PhoneCall, contador: PENDENCIAS.length },
+    { para: '/profissional/revisao', rotulo: 'Revisão humana', icone: ClipboardCheck, contador: pedidosPendentes(resumo) },
+    { para: '/profissional/pendencias', rotulo: 'Pendências', icone: PhoneCall, contador: resumo?.pendencias },
     { para: '/profissional/dados', rotulo: 'Dados', icone: Database },
   ]
 
@@ -100,7 +118,7 @@ export function ProfissionalLayout() {
           </ul>
         </nav>
         <main id="conteudo" className="min-w-0 flex-1">
-          <Outlet />
+          <Outlet context={{ resumo, erroResumo, recarregarResumo: recarregar, medicoId: sessao?.medicoId ?? 0 } satisfies ContextoProfissional} />
         </main>
       </div>
     </div>

@@ -1,18 +1,14 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import type { Resumo } from '../../api/tipos'
 import { cx } from '../../components/ui'
-import { PENDENCIAS } from '../../data/pendencias'
-import { usePulso } from '../../store/PulsoStore'
+import { pedidosPendentes } from '../../layouts/ProfissionalLayout'
 
-export function Indicadores() {
-  const { fila, pendentes } = usePulso()
-  const estourado = useMemo(() => fila.filter((l) => l.fatores.percentualPrazo > 1).length, [fila])
-
+export function Indicadores({ resumo }: { resumo: Resumo }) {
   const itens = [
-    { valor: fila.length, rotulo: 'ativas', link: '/profissional/fila', tom: 'text-petroleo' },
-    { valor: estourado, rotulo: 'prazo estourado', link: '/profissional/fila?ordem=dias&dir=desc', tom: 'text-g1' },
-    { valor: pendentes.length, rotulo: 'revisão humana', link: '/profissional/revisao', tom: 'text-g3' },
-    { valor: PENDENCIAS.length, rotulo: 'pendências', link: '/profissional/pendencias', tom: 'text-g6' },
+    { valor: resumo.solicitacoes.ativa ?? 0, rotulo: 'ativas', link: '/profissional/fila', tom: 'text-petroleo' },
+    { valor: resumo.prazo_estourado, rotulo: 'prazo estourado', link: '/profissional/fila?ordem=dias&dir=desc', tom: 'text-g1' },
+    { valor: pedidosPendentes(resumo) ?? 0, rotulo: 'revisão humana', link: '/profissional/revisao', tom: 'text-g3' },
+    { valor: resumo.pendencias, rotulo: 'pendências', link: '/profissional/pendencias', tom: 'text-g6' },
   ]
 
   return (

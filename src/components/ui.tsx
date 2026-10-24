@@ -356,3 +356,25 @@ export function AvisoProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAviso = () => useContext(AvisoCtx)
+
+/* Estados de carregamento --------------------------------------------- */
+
+export function Carregando({ texto = 'Carregando…' }: { texto?: string }) {
+  return (
+    <div className="flex items-center gap-3 py-16 text-sm text-tinta-soft" role="status">
+      <span className="size-4 animate-spin rounded-full border-2 border-oceano border-r-transparent" aria-hidden="true" />
+      {texto}
+    </div>
+  )
+}
+
+export function FalhaApi({ erro, aoTentar }: { erro: string; aoTentar: () => void }) {
+  return (
+    <div role="alert" className="mt-6 rounded-xl border border-urgente/30 bg-urgente-50 px-5 py-4">
+      <p className="text-sm font-semibold text-urgente">{erro}</p>
+      <Botao variante="secundario" className="mt-3 min-h-9 px-4" onClick={aoTentar}>
+        Tentar novamente
+      </Botao>
+    </div>
+  )
+}

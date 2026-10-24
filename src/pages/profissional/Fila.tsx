@@ -1,11 +1,13 @@
 import { useMemo, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { SeloFila, TOM_FILA, cx } from '../../components/ui'
+import { api } from '../../api/cliente'
+import { formatarCid, partesJustificativa } from '../../api/rotulos'
+import type { ItemFila } from '../../api/tipos'
+import { useApi } from '../../api/useApi'
+import { Carregando, FalhaApi, SeloFila, TOM_FILA, cx } from '../../components/ui'
 import { NOME_FILA, ORDEM_FILAS, type FilaCodigo } from '../../data/fila'
 import { formatarData, HOJE } from '../../lib/datas'
-import type { LinhaFila } from '../../lib/prioridade'
-import { usePulso } from '../../store/PulsoStore'
 
 const POR_PAGINA = 20
 
@@ -16,13 +18,16 @@ const normalizar = (t: string) =>
     .replace(/\p{Diacritic}/gu, '')
 
 type Chave = 'posicao' | 'dias'
-const ORDENADORES: Record<Chave, (a: LinhaFila, b: LinhaFila) => number> = {
+const ORDENADORES: Record<Chave, (a: ItemFila, b: ItemFila) => number> = {
   posicao: (a, b) => a.posicao - b.posicao,
-  dias: (a, b) => a.dias - b.dias,
+  dias: (a, b) => a.dias_em_fila - b.dias_em_fila,
 }
 
+const motivo = (l: ItemFila) => partesJustificativa(l.justificativa).motivos.join(' · ') || NOME_FILA[l.fila]
+
 export function Fila() {
-  const { fila } = usePulso()
+  const { dados, erro, carregando, recarregar } = useApi(() => api.fila())
+  const fila = useMemo(() => dados ?? [], [dados])
   const [params, setParams] = useSearchParams()
   const navegar = useNavigate()
 
@@ -44,16 +49,19 @@ export function Fila() {
   }
 
   const especialidades = useMemo(
-    () => [...new Set(fila.map((l) => l.paciente.especialidade))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    () => [...new Set(fila.map((l) => l.especialidade))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
     [fila],
   )
 
   const filtrada = useMemo(() => {
     const termo = normalizar(busca.trim())
-    const lista = fila.filter(({ paciente: p }) => {
-      if (especialidade && p.especialidade !== especialidade) return false
-      if (nivel && p.fila !== nivel) return false
-      return !termo || normalizar(`${p.nome} ${p.id} ${p.pacienteId} ${p.procedimento} ${p.cid}`).includes(termo)
+    const lista = fila.filter((l) => {
+      if (especialidade && l.especialidade !== especialidade) return false
+      if (nivel && l.fila !== nivel) return false
+      return (
+        !termo ||
+        normalizar(`${l.paciente_nome} ${l.solicitacao_id} ${l.paciente_id} ${l.procedimento} ${l.cid_principal}`).includes(termo)
+      )
     })
     const ordenar = ORDENADORES[chave] ?? ORDENADORES.posicao
     return lista.sort((a, b) => (crescente ? 1 : -1) * ordenar(a, b))
@@ -133,7 +141,11 @@ export function Fila() {
         )}
       </div>
 
-      {visiveis.length === 0 ? (
+      {erro ? (
+        <FalhaApi erro={erro} aoTentar={recarregar} />
+      ) : carregando && !dados ? (
+        <Carregando texto="Carregando a fila…" />
+      ) : visiveis.length === 0 ? (
         <div className="mt-3 rounded-xl border border-dashed border-linha bg-white px-6 py-14 text-center">
           <p className="font-titulo text-2xl text-petroleo">Nenhum paciente encontrado</p>
           <p className="mt-1 text-sm text-tinta-soft">Revise a busca ou os filtros aplicados.</p>
@@ -164,12 +176,12 @@ export function Fila() {
               <tbody className="divide-y divide-linha">
                 {visiveis.map((l) => (
                   <tr
-                    key={l.paciente.id}
-                    onClick={() => navegar(`/profissional/pacientes/${l.paciente.id}`)}
+                    key={l.solicitacao_id}
+                    onClick={() => navegar(`/profissional/pacientes/${l.solicitacao_id}`)}
                     className="cursor-pointer align-top transition-colors hover:bg-areia/70"
                   >
                     <td className="tabular relative py-3.5 pl-5 pr-3 font-titulo text-xl font-semibold text-petroleo">
-                      <span className={cx('absolute inset-y-0 left-0 w-1', TOM_FILA[l.paciente.fila].barra)} aria-hidden="true" />
+                      <span className={cx('absolute inset-y-0 left-0 w-1', TOM_FILA[l.fila].barra)} aria-hidden="true" />
                       {l.posicao}
                     </td>
                     <td className="px-3 py-4">
@@ -177,25 +189,25 @@ export function Fila() {
                     </td>
                     <td className="min-w-44 px-3 py-3.5">
                       <Link
-                        to={`/profissional/pacientes/${l.paciente.id}`}
+                        to={`/profissional/pacientes/${l.solicitacao_id}`}
                         onClick={(e) => e.stopPropagation()}
                         className="font-semibold text-tinta hover:text-petroleo hover:underline"
                       >
-                        {l.paciente.nome}
+                        {l.paciente_nome}
                       </Link>
                       <p className="tabular whitespace-nowrap text-xs text-tinta-soft">
-                        {l.paciente.id} · {l.paciente.idade} anos
+                        {l.solicitacao_id} · {l.idade} anos
                       </p>
                     </td>
                     <td className="min-w-44 px-3 py-3.5">
-                      {l.paciente.procedimento}
-                      <p className="text-xs font-semibold text-tinta-soft">{l.paciente.cid}</p>
+                      {l.procedimento}
+                      <p className="text-xs font-semibold text-tinta-soft">{formatarCid(l.cid_principal)}</p>
                     </td>
                     <td className="px-3 py-3.5">
-                      <SeloFila f={l.paciente.fila} compacto />
+                      <NivelComProposta l={l} />
                     </td>
-                    <td className="tabular px-3 py-3.5 text-right font-medium">{l.dias}</td>
-                    <td className="min-w-64 px-3 py-3.5 pr-5 text-[13px] leading-snug text-tinta-soft">{l.resumo}</td>
+                    <td className="tabular px-3 py-3.5 text-right font-medium">{l.dias_em_fila}</td>
+                    <td className="min-w-64 px-3 py-3.5 pr-5 text-[13px] leading-snug text-tinta-soft">{motivo(l)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -205,34 +217,34 @@ export function Fila() {
           {/* Lista (celular e tablet) */}
           <ul className="mt-3 grid gap-3 md:grid-cols-2 xl:hidden">
             {visiveis.map((l) => (
-              <li key={l.paciente.id}>
+              <li key={l.solicitacao_id}>
                 <Link
-                  to={`/profissional/pacientes/${l.paciente.id}`}
+                  to={`/profissional/pacientes/${l.solicitacao_id}`}
                   className="block rounded-xl border border-linha bg-white p-4 transition-colors hover:border-petroleo/40"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-baseline gap-3">
                       <span className="tabular font-titulo text-2xl font-semibold text-petroleo">{l.posicao}</span>
                       <div>
-                        <p className="font-semibold">{l.paciente.nome}</p>
+                        <p className="font-semibold">{l.paciente_nome}</p>
                         <p className="tabular text-xs text-tinta-soft">
-                          {l.paciente.id} · {l.paciente.idade} anos
+                          {l.solicitacao_id} · {l.idade} anos
                         </p>
                       </div>
                     </div>
-                    <SeloFila f={l.paciente.fila} compacto />
+                    <NivelComProposta l={l} />
                   </div>
                   <p className="mt-3 text-sm">
-                    {l.paciente.procedimento} <span className="text-tinta-soft">· {l.paciente.cid}</span>
+                    {l.procedimento} <span className="text-tinta-soft">· {formatarCid(l.cid_principal)}</span>
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-4 text-sm">
                     <span>
-                      <span className="tabular font-semibold">{l.dias}</span>{' '}
+                      <span className="tabular font-semibold">{l.dias_em_fila}</span>{' '}
                       <span className="text-tinta-soft">dias na fila</span>
                     </span>
                     <Mudanca linha={l} />
                   </div>
-                  <p className="mt-3 border-t border-linha pt-3 text-[13px] leading-snug text-tinta-soft">{l.resumo}</p>
+                  <p className="mt-3 border-t border-linha pt-3 text-[13px] leading-snug text-tinta-soft">{motivo(l)}</p>
                 </Link>
               </li>
             ))}
@@ -326,17 +338,17 @@ function Cabecalho({
   )
 }
 
-function Mudanca({ linha }: { linha: LinhaFila }) {
-  const delta = linha.posicaoChegada - linha.posicao
+function Mudanca({ linha }: { linha: ItemFila }) {
+  const delta = linha.posicao_inicial - linha.posicao
   if (delta === 0) return <span className="text-xs text-tinta-soft">sem mudança</span>
   const subiu = delta > 0
   return (
     <span
       className={cx('tabular inline-flex items-center gap-0.5 whitespace-nowrap text-xs font-semibold', subiu ? 'text-oceano' : 'text-tinta-soft')}
-      aria-label={`${subiu ? 'Subiu' : 'Desceu'}; era a posição ${linha.posicaoChegada} na ordem de chegada`}
+      aria-label={`${subiu ? 'Subiu' : 'Desceu'}; era a posição ${linha.posicao_inicial} na ordem de chegada`}
     >
       {subiu ? <ArrowUp size={12} strokeWidth={2.5} /> : <ArrowDown size={12} strokeWidth={2.5} />}
-      era {linha.posicaoChegada}
+      era {linha.posicao_inicial}
     </span>
   )
 }
@@ -387,5 +399,24 @@ function Chip({
     >
       {children}
     </button>
+  )
+}
+
+function NivelComProposta({ l }: { l: ItemFila }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <SeloFila f={l.fila} compacto />
+      {l.mudanca_tipo === 'sair' ? (
+        <span className="text-xs font-semibold text-tinta-soft" title="Pedido de saída aguardando revisão">
+          → saída
+        </span>
+      ) : (
+        l.fila_proposta && (
+          <span className="inline-flex items-center gap-1 text-xs text-tinta-soft" title="Pedido de mudança aguardando revisão">
+            → <SeloFila f={l.fila_proposta} compacto />
+          </span>
+        )
+      )}
+    </span>
   )
 }

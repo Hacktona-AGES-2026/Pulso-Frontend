@@ -27,8 +27,8 @@ export function Entrar() {
       await entrar(identificacao, senha)
       const destino = (local.state as { de?: string } | null)?.de ?? '/profissional/visao'
       navegar(destino, { replace: true })
-    } catch {
-      setErro('Identificação ou senha incorretas.')
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Identificação ou senha incorretas.')
       setEnviando(false)
     }
   }
@@ -67,7 +67,7 @@ export function Entrar() {
             <div className="mt-6 space-y-5">
               <Campo
                 rotulo="Identificação profissional"
-                dica="CRM ou matrícula funcional."
+                dica="CRM cadastrado na regulação."
                 autoComplete="username"
                 value={identificacao}
                 onChange={(e) => setIdentificacao(e.target.value)}
