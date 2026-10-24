@@ -51,9 +51,10 @@ export const api = {
   solicitacao: (id: string) => requisitar<Detalhe>(`/solicitacoes/${encodeURIComponent(id)}`),
   mudancas: (status: 'pendente' | 'todas' = 'pendente') =>
     requisitar<Mudanca[]>(`/mudancas?status=${status}&limite=1000&com_explicacao=true`),
-  // gerar=false: usa o texto já gerado (ou o texto padrão), sem chamar o LLM na hora
+  // Usa o texto já gerado; se não houver, o backend gera na hora com o LLM (alguns segundos) e guarda.
   explicacaoSolicitacao: (id: string) =>
-    requisitar<Explicacao>(`/solicitacoes/${encodeURIComponent(id)}/explicacao?gerar=false`),
+    requisitar<Explicacao>(`/solicitacoes/${encodeURIComponent(id)}/explicacao`),
+  explicacaoMudanca: (id: number) => requisitar<Explicacao>(`/mudancas/${id}/explicacao`),
   decidir: (id: number, corpo: { decisao: 'aprovar' | 'rejeitar'; medico_id: number; motivo: string }) =>
     requisitar<ResultadoDecisao>(`/mudancas/${id}/decisao`, { method: 'POST', body: JSON.stringify(corpo) }),
   processarEventos: (limite = 1) =>
