@@ -1,4 +1,4 @@
-// 01 · Entrada e limpeza: tudo o que sai do fluxo cai numa bandeja com rótulo. Nada é apagado.
+// 01 · Entrada e limpeza: o que sai do fluxo vai para uma bandeja com o motivo. Nenhuma linha é apagada.
 import { useRef } from 'react'
 import { br, mix, saida, trecho, useCena } from '../rolagem'
 
@@ -38,11 +38,11 @@ const ARQUIVOS = [
 
 const RELATORIO: [string, string][] = [
   ['816', 'CIDs normalizados: K409 e K40.9 são o mesmo código.'],
-  ['50', 'grafias de município unificadas em 38.'],
+  ['50', 'registros com município reescrito: 62 grafias viram 38 municípios.'],
   ['22', 'pedidos duplicados fundidos no mais antigo, com textos e eventos.'],
   ['17', 'saídas achadas nas observações: desistência, cirurgia em outro serviço.'],
   ['9', 'eventos em quarentena: apontavam para pedidos que não existem.'],
-  ['7', 'eventos repetidos descartados.'],
+  ['7', 'eventos repetidos (mesmo conteúdo, id diferente) descartados.'],
 ]
 
 export function Limpeza() {
@@ -86,7 +86,7 @@ export function Limpeza() {
             ))}
             <g style={{ opacity: correcoes }}>
               <text className="pl-svg-mono forte" x="280" y="172" textAnchor="middle">✓ 816 CIDs normalizados</text>
-              <text className="pl-svg-mono forte" x="280" y="194" textAnchor="middle">✓ 50 grafias → 38 municípios</text>
+              <text className="pl-svg-mono forte" x="280" y="194" textAnchor="middle">✓ 62 grafias → 38 municípios</text>
             </g>
 
             <path className="pl-fluxo" d="M280 300 L280 498" />
@@ -121,10 +121,10 @@ export function Limpeza() {
         <div className="pl-passo" data-passo>
           <div className="pl-cartao">
             <p className="pl-num">01 · Entrada e limpeza</p>
-            <h2 id="pl-limpeza" className="text-[2.25rem] sm:text-[2.75rem]">Limpar sem apagar.</h2>
+            <h2 id="pl-limpeza" className="text-[2.25rem] sm:text-[2.75rem]">Nenhuma linha é apagada.</h2>
             <p className="mt-3 text-[16px] text-tinta-soft">
-              Três CSVs entram como vieram. Cada correção vira uma linha num relatório; o que sai do fluxo fica numa
-              bandeja, com o motivo.
+              Os três CSVs entram sem edição manual. Cada correção fica registrada; o que sai do fluxo é guardado com
+              o motivo.
             </p>
             <ul className="mt-5 divide-y divide-dashed divide-linha border-t border-dashed border-linha">
               {RELATORIO.map(([n, t]) => (
@@ -141,8 +141,8 @@ export function Limpeza() {
             <p className="tabular font-titulo text-[2rem] font-bold leading-tight text-petroleo">941 → 902 pedidos ativos</p>
             <p className="tabular font-titulo text-[2rem] font-bold leading-tight text-petroleo">1.505 → 1.489 eventos válidos</p>
             <p className="mt-4 text-[14px] text-tinta-soft">
-              As 5 saídas avisadas por telefone não saem aqui: chegam como eventos e viram pedidos para o médico. Por
-              isso 902 entram e 897 terminam na fila recomendada.
+              As 5 saídas avisadas por telefone não saem na limpeza: chegam como eventos e viram pedidos para o
+              médico. Por isso 902 pedidos entram no motor e 897 terminam na fila recomendada.
             </p>
           </div>
         </div>

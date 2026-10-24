@@ -86,7 +86,10 @@ const COMPLEXO: [number, number][] = [
 function geometria(w: number, h: number) {
   const fone = w < 520
   const faixaH = 112 // tira do traço, em cima
-  const topo = faixaH + 34
+  // estreito: a linha do evento (.pl-agora) desce para baixo da caixa de pedidos e ocupa a largura toda;
+  // o mesmo limite está no @container de pipeline.css
+  const estreito = w < 560
+  const topo = faixaH + (estreito ? 62 : 34)
   const base = 6
   const abre = fone ? 12 : 34
   const cabeca = w >= 560 ? 214 : fone ? 62 : 118
@@ -365,7 +368,7 @@ export function Motor() {
     foco != null
       ? `${ORDEM_FILAS[foco]} · ${NOME_FILA[ORDEM_FILAS[foco]]}: ${REGRA_FILA[ORDEM_FILAS[foco]]}`
       : faixa > 0
-        ? 'Nível recomendado pelo motor. A fila oficial só muda com o médico.'
+        ? 'Nível recomendado; quem muda a fila oficial é o médico.'
         : queda < 1
           ? '902 pedidos ativos, na ordem de hoje.'
           : 'Só com o cadastro: cada pedido em um nível.'
@@ -467,11 +470,11 @@ export function Motor() {
         <div className="pl-passo" data-passo>
           <div className="pl-cartao">
             <p className="pl-num">02 · Motor</p>
-            <h2 id="pl-motor" className="text-[2.25rem] sm:text-[2.75rem]">Oito níveis. Uma ordem que não muda.</h2>
+            <h2 id="pl-motor" className="text-[2.25rem] sm:text-[2.75rem]">Oito níveis, de G1a a G7.</h2>
             <p className="mt-3 text-[16px] text-tinta-soft">
-              O motor lê o CID, a dor, a limitação e o texto do médico, e entende negação: “sem sinais de
-              encarceramento” não é encarceramento. Cada pedido cai em um de oito níveis, baseados no SWALIS. A ordem
-              entre os níveis é fixa.
+              O motor lê o CID, a dor, a limitação e o texto do médico, e trata negação: “sem sinais de
+              encarceramento” não conta como encarceramento. Cada pedido cai em um de oito níveis, baseados no SWALIS.
+              A ordem entre os níveis é fixa.
             </p>
           </div>
         </div>
@@ -487,35 +490,36 @@ export function Motor() {
         </div>
         <div className="pl-passo" data-passo>
           <div className="pl-cartao border-l-4 border-l-petroleo">
-            <p className="pl-rotulo">Regra de ouro, por construção</p>
+            <p className="pl-rotulo">Regra de ouro</p>
             <p className="font-titulo text-[1.6rem] font-bold leading-snug text-petroleo">
-              Todo CID C* cai em G1a ou G2. Nenhum paciente com câncer fica abaixo de quem não tem urgência clínica.
+              Todo CID C* cai em G1a ou G2, acima de qualquer paciente sem urgência clínica.
             </p>
           </div>
         </div>
-        <div className="pl-passo" data-passo id="eventos">
+        <div className="pl-passo" data-passo data-traco="eventos" id="eventos">
           <div className="pl-cartao">
             <p className="pl-num">03 · Eventos</p>
-            <h2 className="text-[2.25rem] sm:text-[2.75rem]">Cada evento é uma batida.</h2>
+            <h2 className="text-[2.25rem] sm:text-[2.75rem]">Eventos processados por data.</h2>
             <p className="mt-3 text-[16px] text-tinta-soft">
-              Biópsias, idas ao PS, internações, exames, ligações: 1.489 eventos entram na ordem em que aconteceram.
-              Cada um reavalia só aquele paciente. Se o nível dele mudaria, nasce um pedido para o médico.
+              Os 1.489 eventos válidos (biópsias, idas ao PS, internações, exames, ligações) são processados em ordem
+              de data. Cada evento reavalia só o paciente dele. Se o nível recomendado muda, o motor abre um pedido
+              para o médico.
             </p>
           </div>
         </div>
         <div className="pl-passo" data-passo>
           <div className="pl-cartao">
             <p className="tabular font-titulo text-[2.25rem] font-bold leading-tight text-petroleo">
-              1.489 batidas. 128 pedidos.
+              1.489 eventos → 128 pedidos pendentes
             </p>
             <ul className="mt-4 divide-y divide-linha border-y border-linha text-[14px]">
               <li className="py-2.5">
-                <b className="tabular text-petroleo">1.225</b> não mudam o nível: desempate e justificativa se
-                atualizam sozinhos.
+                <b className="tabular text-petroleo">1.225</b> não mudam o nível; atualizam só o desempate e a
+                justificativa.
               </li>
               <li className="py-2.5">
-                <b className="tabular text-petroleo">136</b> abrem um pedido; 8 foram substituídos por evidência mais
-                forte antes de alguém decidir.
+                <b className="tabular text-petroleo">136</b> abrem um pedido; em 8 casos o pedido novo substitui um que
+                ainda esperava decisão.
               </li>
               <li className="py-2.5">
                 <b className="tabular text-petroleo">128</b> trazem evidência nova para um pedido já aberto.
