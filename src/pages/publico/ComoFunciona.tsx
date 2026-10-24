@@ -53,6 +53,13 @@ export function ComoFunciona() {
           Consultar minha cirurgia <ArrowRight size={16} />
         </Link>
       </div>
+
+      <p className="mt-10 text-[13px] text-tinta-soft">
+        Quer ver como o motor funciona por dentro?{' '}
+        <Link to="/pipeline" className="font-semibold text-petroleo hover:underline">
+          O pipeline, passo a passo
+        </Link>
+      </p>
     </div>
   )
 }
