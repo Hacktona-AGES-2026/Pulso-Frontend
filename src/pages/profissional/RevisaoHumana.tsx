@@ -104,6 +104,26 @@ export function RevisaoHumana() {
   const atual = Math.min(pagina, totalPaginas)
   const visiveis = lista.slice((atual - 1) * POR_PAGINA, atual * POR_PAGINA)
 
+  // Card sem texto pronto: pede ao backend para gerar com o LLM, um de cada vez, só os da página.
+  // A chave inclui atualizada_em: um evento novo muda os fatos do pedido e pede outro texto.
+  const chave = (m: Mudanca) => `${m.id}:${m.atualizada_em}`
+  const [geradas, setGeradas] = useState<Record<string, string>>({})
+  const [gerando, setGerando] = useState<string | null>(null)
+  const tentadas = useRef(new Set<string>())
+  useEffect(() => {
+    if (gerando) return
+    const falta = visiveis.find((m) => !m.explicacao && !tentadas.current.has(chave(m)))
+    if (!falta) return
+    const k = chave(falta)
+    tentadas.current.add(k)
+    setGerando(k)
+    api
+      .explicacaoMudanca(falta.id)
+      .then((r) => r.fonte === 'llm' && setGeradas((g) => ({ ...g, [k]: r.texto })))
+      .catch(() => {}) // sem LLM: fica o motivo do motor
+      .finally(() => setGerando(null))
+  })
+
   function irPara(n: number) {
     setPagina(n)
     window.scrollTo({ top: 0 })
@@ -209,17 +229,39 @@ export function RevisaoHumana() {
                   <span aria-hidden="true">→</span>
                   {m.fila_proposta ? <SeloFila f={m.fila_proposta} /> : <span className="text-sm font-semibold">saída</span>}
                   {m.posicao_atual && (
-                    <span
-                      className="tabular ml-1 text-xs text-tinta-soft"
-                      title="Estimativa calculada sobre a fila de hoje, como se só este pedido fosse aprovado"
-                    >
+                    <span className="tabular ml-1 text-xs text-tinta-soft">
                       posição {m.posicao_atual}
-                      {m.posicao_proposta && ` → ~${m.posicao_proposta} se aprovado`}
+                      {m.posicao_proposta && (
+                        <span
+                          className="whitespace-nowrap"
+                          title="Calculada sobre a fila oficial de hoje, como se só este pedido fosse aprovado. Pedidos parecidos podem cair na mesma posição."
+                        >
+                          {` → ~${m.posicao_proposta} se aprovado sozinho`}
+                        </span>
+                      )}
+                      {m.posicao_recomendada && (
+                        <>
+                          {' · '}
+                          <span
+                            className="whitespace-nowrap"
+                            title="Posição na fila recomendada de agora, como se todos os pedidos pendentes fossem aprovados."
+                          >
+                            {m.posicao_recomendada} com todos aprovados
+                          </span>
+                        </>
+                      )}
                     </span>
                   )}
                 </div>
 
-                <p className="mt-3 text-sm leading-relaxed">{m.explicacao || motivoSemPrefixo(m.motivo)}</p>
+                <p className="mt-3 text-sm leading-relaxed">
+                  {m.explicacao || geradas[chave(m)] || motivoSemPrefixo(m.motivo)}
+                </p>
+                {gerando === chave(m) && (
+                  <p className="mt-1 text-xs text-tinta-soft" aria-live="polite">
+                    Gerando explicação em linguagem clara…
+                  </p>
+                )}
 
                 {m.evidencias.some((e) => e.trecho) && (
                   <ul className="mt-3 space-y-1.5 rounded-lg bg-nevoa-50 px-3.5 py-2.5 text-[13px]">
