@@ -4,6 +4,7 @@ import { Abertura } from './pipeline/secoes/Abertura'
 import { Limpeza } from './pipeline/secoes/Limpeza'
 import { Motor } from './pipeline/secoes/Motor'
 import { Medico } from './pipeline/secoes/Medico'
+import { MaquinaTempo } from './pipeline/secoes/MaquinaTempo'
 import { Saida } from './pipeline/secoes/Saida'
 import './pipeline/pipeline.css'
 
@@ -21,6 +22,7 @@ export function Pipeline() {
         <Limpeza />
         <Motor />
         <Medico />
+        <MaquinaTempo />
         <Saida />
       </div>
     </div>

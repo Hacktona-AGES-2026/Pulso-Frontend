@@ -9,6 +9,9 @@ import { mix, saida, suave, trecho, useCena, useMenosMovimento } from '../rolage
 const MOTIVO = 'Confirmar o laudo em consulta antes de mudar de nível.'
 const G6 = 6
 const G1A = 0
+/** Centro da coluna do nível (o trilho tem 8 colunas iguais) e altura do trilho, abaixo dos selos. */
+const coluna = (nivel: number) => `${((nivel + 0.5) / 8) * 100}%`
+const TRILHO_Y = 32
 
 const REGRAS = [
   'Rejeitar exige um motivo escrito.',
@@ -65,7 +68,7 @@ export function Medico() {
         <div className="pl-vis pl-mesa">
           <div
             className="relative z-10 w-full max-w-[30rem]"
-            style={{ transform: `translateY(${mix(60, 0, entra)}px)`, opacity: mix(0.3, 1, entra) }}
+            style={{ transform: `translateY(${mix(-24, 0, entra)}px)`, opacity: mix(0.3, 1, entra) }}
           >
             <CartaoPedido
               marca={pousou ? modo : null}
@@ -94,48 +97,41 @@ export function Medico() {
             </div>
           </div>
 
-          {/* a fila oficial, nível a nível: ela só troca quando o carimbo de aprovação cai */}
-          <div className="mt-10 w-full max-w-[30rem] rounded-xl border border-linha bg-white px-4 pb-3 pt-3">
+          {/* a fila oficial, os 8 níveis lado a lado: ela só troca quando o carimbo de aprovação cai */}
+          <div className="mt-9 w-full max-w-[30rem] rounded-xl border border-linha bg-white px-4 pb-3 pt-3">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-[13px] font-semibold text-tinta">Fila oficial</p>
-              <p className="tabular font-titulo text-2xl font-bold text-petroleo">
-                posição {posicao}
-              </p>
+              <p className="tabular font-titulo text-2xl font-bold text-petroleo">posição {posicao}</p>
             </div>
-            <div className="relative mt-2" aria-hidden="true">
+            <div className="relative mt-3 grid grid-cols-8 pb-5" aria-hidden="true">
               {ORDEM_FILAS.map((f) => (
-                <div key={f} className="flex h-6 items-center gap-2">
-                  <span className="w-10 shrink-0">
-                    <SeloFila f={f} compacto />
-                  </span>
-                  <span className="h-1 flex-1 rounded-full" style={{ background: COR_NIVEL[f].fundo }} />
+                <div key={f} className="flex flex-col items-center gap-2">
+                  <SeloFila f={f} compacto />
+                  <span className="h-1 w-full" style={{ background: COR_NIVEL[f].fundo }} />
                 </div>
               ))}
               {/* proposta: onde o motor quer que ela vá */}
               {!pousou || !aprova ? (
-                <span
-                  className={cx('pl-fantasma', pousou && 'opacity-0')}
-                  style={{ top: G1A * 24 + 12, left: '62%' }}
-                />
+                <span className={cx('pl-fantasma', pousou && 'opacity-0')} style={{ top: TRILHO_Y, left: coluna(G1A) }} />
               ) : null}
-              <span className="pl-ela" style={{ top: nivel * 24 + 12, left: '62%' }}>
+              <span className="pl-ela" style={{ top: TRILHO_Y, left: coluna(nivel) }}>
                 <i>621</i>
               </span>
             </div>
-            <p className="mt-2 min-h-5 text-[12.5px] text-tinta-soft">
+            <p className="mt-3 min-h-5 text-[12.5px] text-tinta-soft">
               {!pousou
-                ? 'Proposta do motor: G6 → G1a. Até o carimbo, nada muda.'
+                ? 'Proposta do motor: G6 → G1a. A fila oficial não muda até a decisão.'
                 : aprova
                   ? anda > 0.5
-                    ? '605 pacientes, da 16ª à 620ª, descem uma posição.'
+                    ? '605 pacientes, da 16ª à 620ª posição, descem uma posição.'
                     : 'Aprovado. Renumerando a fila…'
-                  : 'Rejeitado. Fila oficial sem mudança; ela segue na 621.'}
+                  : 'Rejeitado. A fila oficial não muda; a paciente segue na posição 621.'}
             </p>
           </div>
 
-          <div className={cx('mt-4 flex flex-wrap items-center gap-3 transition-all duration-500', fim ? 'opacity-100' : 'translate-y-2 opacity-0')}>
+          <div className={cx('mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 transition-all duration-500', fim ? 'opacity-100' : 'translate-y-2 opacity-0')}>
             <span className="rounded-full border border-sucesso/40 bg-sucesso-50 px-3 py-1 text-[12px] font-semibold text-sucesso">
-              {aprova ? 'regra de ouro ✓' : 'motivo registrado ✓'}
+              {aprova ? 'regra de ouro conferida' : 'motivo registrado'}
             </span>
             <code className="pl-mono text-[11.5px] text-tinta-soft">
               {aprova ? 'histórico · pedido #121 · aprovado · G6 → G1a · 621 → 16' : 'histórico · pedido #121 · rejeitado · motivo escrito'}
@@ -148,17 +144,18 @@ export function Medico() {
         <div className="pl-passo" data-passo>
           <div className="pl-cartao">
             <p className="pl-num">04 · Decisão</p>
-            <h2 id="pl-medico" className="text-[2.25rem] sm:text-[2.75rem]">O sistema propõe. O médico decide.</h2>
+            <h2 id="pl-medico" className="text-[2.25rem] sm:text-[2.75rem]">O médico aprova ou rejeita.</h2>
             <p className="mt-3 text-[16px] text-tinta-soft">
-              Cada pedido traz de onde, para onde, a posição estimada e as evidências com data e origem. No #121, o CID
-              diz mioma (D25.9); a biópsia diz carcinoma. O motor ouviu a biópsia e pede G6 → G1a.
+              Cada pedido mostra o nível atual e o proposto, a posição estimada e as evidências com data e origem. No
+              pedido #121, o CID cadastrado é D25.9 (mioma), mas a biópsia de 20/09/2026 deu carcinoma; o motor propõe
+              G6 → G1a.
             </p>
-            <p className="mt-3 text-[13px] text-tinta-soft">Toque num carimbo para ver a outra decisão.</p>
+            <p className="mt-3 text-[13px] text-tinta-soft">Clique em Aprovar ou Rejeitar para ver cada resultado.</p>
           </div>
         </div>
         <div className="pl-passo" data-passo>
           <div className="pl-cartao">
-            <p className="pl-rotulo">Quatro travas</p>
+            <p className="pl-rotulo">Regras da decisão</p>
             <ol className="space-y-3">
               {REGRAS.map((r, i) => (
                 <li key={r} className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 text-[15px]">
@@ -170,8 +167,8 @@ export function Medico() {
               ))}
             </ol>
             <p className="tabular mt-5 border-t border-linha pt-4 text-[14px] text-tinta-soft">
-              <b className="font-titulo text-xl text-petroleo">128 pedidos esperando.</b> 33 de G7 para G4, 19 de G2 para
-              G1a, 5 para sair da fila.
+              <b className="font-titulo text-xl text-petroleo">128 pedidos pendentes.</b> Os mais comuns: 33 de G7 para
+              G4 e 19 de G2 para G1a. 5 pedem a saída da fila.
             </p>
           </div>
         </div>
