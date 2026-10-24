@@ -9,7 +9,6 @@ import { Entrar } from './pages/profissional/Entrar'
 import { Fila } from './pages/profissional/Fila'
 import { Paciente } from './pages/profissional/Paciente'
 import { RevisaoHumana } from './pages/profissional/RevisaoHumana'
-import { Pendencias } from './pages/profissional/Pendencias'
 import { VisaoGeral } from './pages/profissional/VisaoGeral'
 import { RotaProtegida } from './store/auth'
 
@@ -21,7 +20,6 @@ const TITULOS: [RegExp, string][] = [
   [/^\/profissional\/pacientes/, 'Paciente · Pulso'],
   [/^\/profissional\/visao/, 'Visão geral · Pulso'],
   [/^\/profissional\/revisao/, 'Revisão humana · Pulso'],
-  [/^\/profissional\/pendencias/, 'Pendências · Pulso'],
   [/^\/$/, 'Acompanhe sua cirurgia · Pulso'],
 ]
 
@@ -60,7 +58,6 @@ export default function App() {
           <Route path="fila" element={<Fila />} />
           <Route path="pacientes/:id" element={<Paciente />} />
           <Route path="revisao" element={<RevisaoHumana />} />
-          <Route path="pendencias" element={<Pendencias />} />
         </Route>
       </Routes>
     </>
