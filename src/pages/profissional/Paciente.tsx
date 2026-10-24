@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Activity,
   ArrowLeft,
@@ -156,11 +156,17 @@ export function Paciente() {
   )
 }
 
+/** Volta para a tela de onde o médico veio (fila, revisão, pendências...); sem histórico, vai para a fila. */
 function Voltar() {
+  const navegar = useNavigate()
+  const temHistorico = (window.history.state as { idx?: number } | null)?.idx
   return (
-    <Link to="/profissional/fila" className="inline-flex items-center gap-1.5 text-sm font-medium text-petroleo hover:underline">
-      <ArrowLeft size={15} /> Fila
-    </Link>
+    <button
+      onClick={() => (temHistorico ? navegar(-1) : navegar('/profissional/fila'))}
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-petroleo hover:underline"
+    >
+      <ArrowLeft size={15} /> Voltar
+    </button>
   )
 }
 
@@ -176,6 +182,7 @@ function Dado({ termo, valor }: { termo: string; valor: string | number }) {
 /* Por que está nesta posição ---------------------------------------- */
 
 function PorQue({ d }: { d: Detalhe }) {
+  const explicacao = useApi(() => api.explicacaoSolicitacao(d.id), [d.id])
   const em = d.estado_motor
   const j = d.fila_oficial ? partesJustificativa(d.fila_oficial.justificativa) : null
   const evidencias = em ? Object.values(em.evidencias).flat() : []
@@ -183,6 +190,9 @@ function PorQue({ d }: { d: Detalhe }) {
   return (
     <Cartao className="p-6">
       <h2 className="text-[1.75rem]">Por que está nesta posição?</h2>
+      {explicacao.dados?.fonte === 'llm' && (
+        <p className="mt-4 text-[15px] leading-relaxed">{explicacao.dados.texto}</p>
+      )}
       {j && (
         <ul className="mt-4 space-y-1.5 text-[15px]">
           {j.motivos.map((m) => (

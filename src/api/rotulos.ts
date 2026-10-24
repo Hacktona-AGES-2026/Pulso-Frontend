@@ -64,7 +64,7 @@ export function eventoDePiora(tipo: string, resultado: string) {
   )
 }
 
-export const ROTULO_MUDANCA = { subir: 'Subir', descer: 'Descer', sair: 'Sair da fila' } as const
+export const ROTULO_MUDANCA = { subir: 'Aumentar prioridade', descer: 'Reduzir prioridade', sair: 'Sair da fila' } as const
 
 /** "subir de G7 (Eletivo estavel) para G4 (...): motivo" → "motivo" */
 export function motivoSemPrefixo(motivo: string) {

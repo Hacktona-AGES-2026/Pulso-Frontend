@@ -1,10 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarX, Files, FlaskConical, LogOut, PhoneOff, type LucideIcon } from 'lucide-react'
 import { api } from '../../api/cliente'
 import { ROTULO_PENDENCIA } from '../../api/rotulos'
 import { useApi } from '../../api/useApi'
+import { Paginacao } from '../../components/Paginacao'
 import { Carregando, FalhaApi, SeloFila } from '../../components/ui'
+
+const POR_PAGINA = 25
 
 const ICONE: Record<string, LucideIcon> = {
   sem_contato: PhoneOff,
@@ -23,6 +26,13 @@ export function Pendencias() {
     () => (dados ?? []).flatMap((p) => p.pendencias.map((tipo) => ({ ...p, tipo }))),
     [dados],
   )
+  const [pagina, setPagina] = useState(1)
+  const visiveis = linhas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
+
+  function irPara(n: number) {
+    setPagina(n)
+    window.scrollTo({ top: 0 })
+  }
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
@@ -46,7 +56,7 @@ export function Pendencias() {
             <span className="text-right">Posição</span>
             <span className="text-right">Nível</span>
           </li>
-          {linhas.map((p) => {
+          {visiveis.map((p) => {
             const Icone = ICONE[p.tipo] ?? PhoneOff
             return (
               <li key={p.solicitacao_id + p.tipo}>
@@ -73,6 +83,9 @@ export function Pendencias() {
             )
           })}
         </ul>
+      )}
+      {dados && (
+        <Paginacao className="mt-4" atual={pagina} porPagina={POR_PAGINA} totalItens={linhas.length} aoMudar={irPara} />
       )}
     </div>
   )

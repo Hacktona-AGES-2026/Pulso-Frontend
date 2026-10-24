@@ -6,9 +6,12 @@ import { formatarCid, motivoSemPrefixo, ROTULO_MUDANCA } from '../../api/rotulos
 import type { Mudanca, TipoMudanca } from '../../api/tipos'
 import { useApi } from '../../api/useApi'
 import { ModalDecisao, rotulosDecisao, type Decisao } from '../../components/modais'
+import { Paginacao } from '../../components/Paginacao'
 import { Botao, Carregando, FalhaApi, SeloFila, cx, useAviso } from '../../components/ui'
 import { useProfissional } from '../../layouts/ProfissionalLayout'
 import { formatarData, formatarInstante } from '../../lib/datas'
+
+const POR_PAGINA = 12
 
 const FILTROS: ('todos' | TipoMudanca)[] = ['todos', 'subir', 'descer', 'sair']
 
@@ -25,12 +28,18 @@ export function RevisaoHumana() {
   const pendentes = useApi(() => api.mudancas('pendente'))
   const decididas = useApi(() => api.mudancas('todas'))
   const [filtro, setFiltro] = useState<'todos' | TipoMudanca>('todos')
+  const [pagina, setPagina] = useState(1)
   const [aberta, setAberta] = useState<{ mudanca: Mudanca; decisao: Decisao } | null>(null)
   const [processando, setProcessando] = useState(false)
 
-  // Link vindo da tela do paciente: rola até o pedido.
+  // Link vindo da tela do paciente: abre a página do pedido e rola até ele.
   useEffect(() => {
-    if (hash && pendentes.dados) document.querySelector(hash)?.scrollIntoView({ block: 'center' })
+    const id = Number(hash.replace('#pedido-', ''))
+    const i = pendentes.dados?.findIndex((m) => m.id === id) ?? -1
+    if (i < 0) return
+    setFiltro('todos')
+    setPagina(Math.floor(i / POR_PAGINA) + 1)
+    requestAnimationFrame(() => document.querySelector(hash)?.scrollIntoView({ block: 'center' }))
   }, [hash, pendentes.dados])
 
   function atualizarTudo() {
@@ -53,6 +62,14 @@ export function RevisaoHumana() {
   }
 
   const lista = (pendentes.dados ?? []).filter((m) => filtro === 'todos' || m.tipo === filtro)
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
+  const atual = Math.min(pagina, totalPaginas)
+  const visiveis = lista.slice((atual - 1) * POR_PAGINA, atual * POR_PAGINA)
+
+  function irPara(n: number) {
+    setPagina(n)
+    window.scrollTo({ top: 0 })
+  }
   const historico = (decididas.dados ?? []).filter((m) => m.status === 'aprovada' || m.status === 'rejeitada')
   const eventosPendentes = resumo?.eventos.pendentes ?? 0
 
@@ -61,7 +78,13 @@ export function RevisaoHumana() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-[2.5rem]">Revisão humana</h1>
         {eventosPendentes > 0 && (
-          <Botao variante="secundario" className="min-h-10 px-4" carregando={processando} onClick={processarProximo}>
+          <Botao
+            variante="secundario"
+            className="min-h-10 px-4"
+            carregando={processando}
+            onClick={processarProximo}
+            title="Reavalia o paciente do próximo evento clínico ainda não lido pelo sistema. Se o nível precisar mudar, um novo pedido aparece aqui."
+          >
             <StepForward size={16} /> Processar próximo evento
             <span className="tabular text-tinta-soft">({eventosPendentes})</span>
           </Botao>
@@ -74,7 +97,10 @@ export function RevisaoHumana() {
           return (
             <button
               key={f}
-              onClick={() => setFiltro(f)}
+              onClick={() => {
+                setFiltro(f)
+                setPagina(1)
+              }}
               aria-pressed={filtro === f}
               className={cx(
                 'tabular inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors',
@@ -98,8 +124,9 @@ export function RevisaoHumana() {
           <p className="mt-3 font-titulo text-2xl text-petroleo">Nada pendente</p>
         </div>
       ) : (
+        <>
         <ul className="mt-6 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-          {lista.map((m) => {
+          {visiveis.map((m) => {
             const rotulos = rotulosDecisao(m)
             return (
               <li
@@ -134,14 +161,17 @@ export function RevisaoHumana() {
                   <span aria-hidden="true">→</span>
                   {m.fila_proposta ? <SeloFila f={m.fila_proposta} /> : <span className="text-sm font-semibold">saída</span>}
                   {m.posicao_atual && (
-                    <span className="tabular ml-1 text-xs text-tinta-soft">
+                    <span
+                      className="tabular ml-1 text-xs text-tinta-soft"
+                      title="Estimativa calculada sobre a fila de hoje, como se só este pedido fosse aprovado"
+                    >
                       posição {m.posicao_atual}
-                      {m.posicao_proposta && ` → ~${m.posicao_proposta}`}
+                      {m.posicao_proposta && ` → ~${m.posicao_proposta} se aprovado`}
                     </span>
                   )}
                 </div>
 
-                <p className="mt-3 text-sm">{motivoSemPrefixo(m.motivo)}</p>
+                <p className="mt-3 text-sm leading-relaxed">{m.explicacao || motivoSemPrefixo(m.motivo)}</p>
 
                 {m.evidencias.some((e) => e.trecho) && (
                   <ul className="mt-3 space-y-1.5 rounded-lg bg-nevoa-50 px-3.5 py-2.5 text-[13px]">
@@ -170,6 +200,8 @@ export function RevisaoHumana() {
             )
           })}
         </ul>
+        <Paginacao className="mt-5" atual={atual} porPagina={POR_PAGINA} totalItens={lista.length} aoMudar={irPara} />
+        </>
       )}
 
       {historico.length > 0 && (

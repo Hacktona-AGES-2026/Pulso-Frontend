@@ -1,15 +1,16 @@
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ArrowDown, ArrowUp, Search } from 'lucide-react'
 import { api } from '../../api/cliente'
 import { formatarCid, partesJustificativa } from '../../api/rotulos'
 import type { ItemFila } from '../../api/tipos'
 import { useApi } from '../../api/useApi'
+import { Paginacao } from '../../components/Paginacao'
 import { Carregando, FalhaApi, SeloFila, TOM_FILA, cx } from '../../components/ui'
 import { NOME_FILA, ORDEM_FILAS, type FilaCodigo } from '../../data/fila'
 import { formatarData, HOJE } from '../../lib/datas'
 
-const POR_PAGINA = 20
+const POR_PAGINA = 50
 
 const normalizar = (t: string) =>
   t
@@ -72,17 +73,25 @@ export function Fila() {
   const visiveis = filtrada.slice((atual - 1) * POR_PAGINA, atual * POR_PAGINA)
   const filtrando = busca || especialidade || nivel
 
+  // A lista rola por dentro; ao trocar de página ou filtro, volta ao topo dela.
+  const rolagem = useRef<HTMLDivElement>(null)
+  const rolagemLista = useRef<HTMLUListElement>(null)
+  useEffect(() => {
+    rolagem.current?.scrollTo({ top: 0 })
+    rolagemLista.current?.scrollTo({ top: 0 })
+  }, [atual, busca, especialidade, nivel, chave, crescente])
+
   const ordenarPor = (k: Chave) =>
     atualizar({ ordem: k === 'posicao' ? null : k, dir: chave === k && crescente ? 'desc' : null })
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-10">
-      <header>
+    <div className="flex h-[calc(100dvh-111px)] min-h-[34rem] flex-col px-4 pb-4 pt-6 sm:px-6 md:h-[calc(100dvh-65px)] lg:px-10">
+      <header className="shrink-0">
         <p className="tabular text-sm text-tinta-soft">{formatarData(HOJE)}</p>
         <h1 className="text-[2.5rem]">Fila priorizada</h1>
       </header>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_15rem]">
+      <div className="mt-6 grid shrink-0 gap-3 sm:grid-cols-[minmax(0,1fr)_15rem]">
         <div className="relative">
           <label htmlFor="busca" className="sr-only">
             Buscar
@@ -117,7 +126,7 @@ export function Fila() {
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por nível">
+      <div className="mt-3 flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Filtrar por nível">
         <Chip ativo={!nivel} aoClicar={() => atualizar({ nivel: null })}>
           Todos
         </Chip>
@@ -129,7 +138,7 @@ export function Fila() {
         ))}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-[13px] text-tinta-soft">
+      <div className="mt-5 flex shrink-0 flex-wrap items-center justify-between gap-2 text-[13px] text-tinta-soft">
         <p aria-live="polite">
           {filtrada.length === fila.length ? `${fila.length} pacientes` : `${filtrada.length} de ${fila.length}`}
           {nivel && ` · ${NOME_FILA[nivel]}`}
@@ -153,10 +162,13 @@ export function Fila() {
       ) : (
         <>
           {/* Tabela (telas largas) */}
-          <div className="mt-3 hidden overflow-x-auto rounded-xl border border-linha bg-white xl:block">
+          <div
+            ref={rolagem}
+            className="relative mt-3 hidden min-h-0 flex-1 overflow-auto rounded-xl border border-linha bg-white xl:block"
+          >
             <table className="w-full min-w-[1000px] text-sm">
               <caption className="sr-only">Fila priorizada de cirurgias, página {atual}</caption>
-              <thead className="border-b border-linha bg-nevoa-50/70 text-left text-[13px] text-tinta-soft">
+              <thead className="sticky top-0 z-10 border-b border-linha bg-nevoa-50 text-left text-[13px] text-tinta-soft">
                 <tr>
                   <Cabecalho chave="posicao" atual={chave} crescente={crescente} aoOrdenar={ordenarPor} className="w-20 pl-5">
                     Posição
@@ -215,7 +227,10 @@ export function Fila() {
           </div>
 
           {/* Lista (celular e tablet) */}
-          <ul className="mt-3 grid gap-3 md:grid-cols-2 xl:hidden">
+          <ul
+            ref={rolagemLista}
+            className="relative mt-3 grid min-h-0 flex-1 auto-rows-max gap-3 overflow-y-auto overscroll-contain md:grid-cols-2 xl:hidden"
+          >
             {visiveis.map((l) => (
               <li key={l.solicitacao_id}>
                 <Link
@@ -250,60 +265,18 @@ export function Fila() {
             ))}
           </ul>
 
-          <nav aria-label="Paginação" className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <p className="tabular text-tinta-soft">
-              {(atual - 1) * POR_PAGINA + 1}–{Math.min(atual * POR_PAGINA, filtrada.length)} de {filtrada.length}
-            </p>
-            <div className="flex items-center gap-1">
-              <BotaoPagina
-                rotulo="Página anterior"
-                desativado={atual === 1}
-                aoClicar={() => atualizar({ p: String(atual - 1) }, true)}
-              >
-                <ChevronLeft size={17} />
-              </BotaoPagina>
-              {paginas(atual, totalPaginas).map((n, i) =>
-                n === null ? (
-                  <span key={`r${i}`} className="px-1 text-tinta-soft">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={n}
-                    onClick={() => atualizar({ p: n === 1 ? null : String(n) }, true)}
-                    aria-current={n === atual ? 'page' : undefined}
-                    className={cx(
-                      'tabular min-w-9 rounded-md px-2 py-1.5 font-medium',
-                      n === atual ? 'bg-petroleo text-white' : 'hover:bg-nevoa-50',
-                    )}
-                  >
-                    {n}
-                  </button>
-                ),
-              )}
-              <BotaoPagina
-                rotulo="Próxima página"
-                desativado={atual === totalPaginas}
-                aoClicar={() => atualizar({ p: String(atual + 1) }, true)}
-              >
-                <ChevronRight size={17} />
-              </BotaoPagina>
-            </div>
-          </nav>
+          <Paginacao
+            className="mt-4 shrink-0"
+            atual={atual}
+            porPagina={POR_PAGINA}
+            totalItens={filtrada.length}
+            aoMudar={(n) => atualizar({ p: n === 1 ? null : String(n) }, true)}
+          />
         </>
       )}
     </div>
   )
 }
-
-function paginas(atual: number, total: number): (number | null)[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const set = new Set([1, total, atual - 1, atual, atual + 1].filter((n) => n >= 1 && n <= total))
-  const lista = [...set].sort((a, b) => a - b)
-  return lista.flatMap((n, i) => (i > 0 && n - lista[i - 1] > 1 ? [null, n] : [n]))
-}
-
-
 
 function Cabecalho({
   chave,
@@ -350,29 +323,6 @@ function Mudanca({ linha }: { linha: ItemFila }) {
       {subiu ? <ArrowUp size={12} strokeWidth={2.5} /> : <ArrowDown size={12} strokeWidth={2.5} />}
       era {linha.posicao_inicial}
     </span>
-  )
-}
-
-function BotaoPagina({
-  rotulo,
-  desativado,
-  aoClicar,
-  children,
-}: {
-  rotulo: string
-  desativado: boolean
-  aoClicar: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      onClick={aoClicar}
-      disabled={desativado}
-      aria-label={rotulo}
-      className="grid size-9 place-items-center rounded-md hover:bg-nevoa-50 disabled:opacity-35 disabled:hover:bg-transparent"
-    >
-      {children}
-    </button>
   )
 }
 
