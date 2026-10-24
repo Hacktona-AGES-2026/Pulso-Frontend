@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Activity } from 'lucide-react'
 import { Marca, cx } from '../components/ui'
 
 export function PublicoLayout() {
@@ -24,6 +25,19 @@ export function PublicoLayout() {
               }
             >
               Como funciona
+            </NavLink>
+            <NavLink
+              to="/pipeline"
+              aria-label="O pipeline por dentro"
+              className={({ isActive }) =>
+                cx(
+                  'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-petroleo ring-1 ring-inset transition-colors',
+                  isActive ? 'bg-nevoa ring-agua' : 'bg-nevoa-50 ring-nevoa hover:bg-nevoa',
+                )
+              }
+            >
+              <Activity size={16} className="text-oceano" aria-hidden="true" />
+              <span className="hidden sm:inline">Pipeline</span>
             </NavLink>
             <Link
               to="/profissional/entrar"
