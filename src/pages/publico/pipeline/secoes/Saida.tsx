@@ -1,4 +1,4 @@
-// 05 · Saída: a fila recomendada, nível a nível, cada posição com o seu recibo.
+// 06 · Saída: a fila recomendada, nível a nível, cada posição com o seu recibo.
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
@@ -29,17 +29,13 @@ function partes(j: string) {
 
 export function Saida() {
   const ref = useRef<HTMLElement>(null)
-  const caixa = useRef<HTMLDivElement>(null)
   const visto = useVisto(ref, '0px 0px 60% 0px')
-  const { w } = useTamanho(caixa)
   const [recibos, setRecibos] = useState<Recibo[] | null>(null)
   const [pos, setPos] = useState(POS_HEROI)
 
   useEffect(() => {
     if (visto && !recibos) carregarRecibos().then(setRecibos)
   }, [visto, recibos])
-
-  const g = useMemo(() => grade(w || 900), [w])
 
   const tela = useTela(
     useCallback(
@@ -122,19 +118,24 @@ export function Saida() {
     if (c >= 0 && c < por && l >= 0 && i < FINAL.length) setPos(i + 1)
   }
 
+  // a altura do canvas sai da largura do próprio canvas (sem o padding da caixa), a mesma usada no desenho
+  const { w } = useTamanho(tela)
+  const g = useMemo(() => grade(w || 900), [w])
+
   const rec = recibos?.[pos - 1]
   return (
     <section ref={ref} id="saida" className="relative py-20 md:py-28" data-traco="calmo" aria-labelledby="pl-saida">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="pl-num">05 · Saída</p>
-        <h2 id="pl-saida" className="text-[2.25rem] sm:text-[2.75rem]">Cada posição tem um recibo.</h2>
+        <p className="pl-num">06 · Saída</p>
+        <h2 id="pl-saida" className="text-[2.25rem] sm:text-[2.75rem]">897 posições, cada uma com recibo.</h2>
         <p className="mt-3 max-w-2xl text-[16px] text-tinta-soft">
-          897 posições, nível a nível. A justificativa sai do motor, com evidência e datas. O LLM (gemma4:e4b) só
-          reescreve em linguagem clara, e uma checagem rejeita qualquer número, data ou termo que não esteja nos fatos.
+          A fila recomendada, nível a nível. A justificativa de cada posição sai do motor, com evidências e datas. O
+          LLM (gemma4:e4b) só reescreve o texto, e uma checagem rejeita qualquer número, data ou termo que não esteja
+          nos fatos.
         </p>
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
-          <div ref={caixa} className="rounded-xl border border-linha bg-white p-4 sm:p-5">
+          <div className="rounded-xl border border-linha bg-white p-4 sm:p-5">
             <canvas
               ref={tela}
               className="block w-full cursor-crosshair touch-manipulation"
@@ -144,11 +145,21 @@ export function Saida() {
               role="img"
               aria-label={`Fila recomendada com 897 pacientes, colorida por nível. Todos os pacientes com câncer estão até a posição ${ULTIMO_ONCO}.`}
             />
+            {!g.margem && (
+              // sem margem para os rótulos no canvas: onde começa cada nível, abaixo
+              <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-[12px] text-tinta-soft">
+                {ORDEM_FILAS.map((f, k) => (
+                  <li key={f} className="tabular flex items-center gap-1">
+                    <SeloFila f={f} compacto /> {INICIO_NIVEL[k]}
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="mt-3 flex items-start gap-2 text-[13px] text-tinta-soft">
               <Check size={16} className="mt-0.5 shrink-0 text-sucesso" />
               <span>
-                Regra de ouro respeitada: o último paciente com CID C* está na posição {ULTIMO_ONCO}; abaixo da linha
-                tracejada não há câncer. Conferido pelo verificador oficial do desafio.
+                Regra de ouro: o último paciente com CID C* está na posição {ULTIMO_ONCO}; abaixo da linha tracejada
+                não há CID C*. Conferido pelo verificador oficial do desafio.
               </span>
             </p>
           </div>
@@ -196,11 +207,8 @@ export function Saida() {
           </aside>
         </div>
 
-        <div className="mx-auto mt-24 max-w-3xl text-center">
-          <p className="text-balance font-titulo text-[2.5rem] font-bold leading-tight text-petroleo sm:text-5xl">
-            O sistema propõe. <span className="text-oceano">O médico decide.</span>
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <div className="mx-auto mt-20 max-w-3xl text-center">
+          <div className="flex flex-wrap justify-center gap-3">
             <Link
               to="/profissional/entrar"
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-petroleo px-5 text-sm font-semibold text-white hover:bg-petroleo-900"
