@@ -3,7 +3,7 @@
 export type IconName =
   | "Pulso" | "grid" | "list" | "flag" | "check-square" | "database"
   | "users" | "target" | "alarm" | "phone" | "pin" | "search" | "check"
-  | "calendar" | "close" | "chevron" | "clock" | "warning";
+  | "calendar" | "close" | "chevron" | "clock" | "warning" | "inbox";
 
 const PATHS: Record<IconName, JSX.Element> = {
   Pulso: <path d="M3 12h3l2-7 4 14 2-7h3" />,
@@ -79,6 +79,12 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M12 3 2.5 20h19L12 3Z" />
       <path d="M12 10v4M12 17.5v.5" />
+    </>
+  ),
+  inbox: (
+    <>
+      <path d="M3 13l2.5-8h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z" />
+      <path d="M3 13h5l1.5 2.5h5L16 13h5" />
     </>
   ),
 };

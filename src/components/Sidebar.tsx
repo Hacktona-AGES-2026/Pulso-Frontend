@@ -1,19 +1,21 @@
 import Icon, { type IconName } from "./Icon";
 import type { Rota } from "../router";
+import { useApi } from "../data/useApi";
+import { api } from "../data/api";
 
 interface ItemNav {
   rota: Rota;
   rotulo: string;
   icone: IconName;
-  badge?: number;
 }
 
 const ITENS: ItemNav[] = [
   { rota: "visao", rotulo: "Visão geral", icone: "grid" },
   { rota: "fila", rotulo: "Fila", icone: "list" },
   { rota: "agenda", rotulo: "Agenda", icone: "calendar" },
-  { rota: "revisao", rotulo: "Revisão humana", icone: "flag", badge: 68 },
-  { rota: "pendencias", rotulo: "Pendências", icone: "check-square", badge: 151 },
+  { rota: "mudancas", rotulo: "Caixa do médico", icone: "inbox" },
+  { rota: "revisao", rotulo: "Revisão humana", icone: "flag" },
+  { rota: "pendencias", rotulo: "Pendências", icone: "check-square" },
   { rota: "dados", rotulo: "Dados", icone: "database" },
 ];
 
@@ -23,6 +25,11 @@ interface Props {
 }
 
 export default function Sidebar({ rota, navegar }: Props) {
+  // Badge da Caixa do médico = mudanças aguardando decisão.
+  const mudancas = useApi(() => api.mudancas("pendente"), []);
+  const badges: Partial<Record<Rota, number>> = {
+    mudancas: mudancas.dados?.length,
+  };
   return (
     <aside className="side">
       <div className="brand">
@@ -43,7 +50,7 @@ export default function Sidebar({ rota, navegar }: Props) {
             <Icon name={it.icone} size={20} strokeWidth={2.1} />
             {it.rotulo}
           </span>
-          {it.badge != null && <span className="badge">{it.badge}</span>}
+          {badges[it.rota] != null && <span className="badge">{badges[it.rota]}</span>}
         </button>
       ))}
 

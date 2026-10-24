@@ -1,23 +1,37 @@
+import { useState } from "react";
 import Icon from "./Icon";
-import { FILA, FAMILIA_DA_FILA, iniciais, type FilaCodigo, type ItemFila } from "../data/fila";
+import { iniciais, ORDEM_FILAS, type FilaCodigo } from "../data/fila";
+import type { ItemFilaApi } from "../data/api";
+import { dataBr, diaSemana, familiaDe } from "../data/derivar";
 
-const FILTROS: Array<"Todas" | FilaCodigo> = ["Todas", "G1a", "G1b", "G2", "G4", "G6"];
+const FILTROS: Array<"Todas" | FilaCodigo> = ["Todas", ...ORDEM_FILAS];
 
 interface Props {
-  onSelect?: (item: ItemFila) => void;
+  itens: ItemFilaApi[];
+  onSelect?: (item: ItemFilaApi) => void;
 }
 
-export default function FilaTable({ onSelect }: Props) {
+export default function FilaTable({ itens, onSelect }: Props) {
+  const [filtro, setFiltro] = useState<"Todas" | FilaCodigo>("Todas");
+  const visiveis = itens.filter((i) => filtro === "Todas" || i.fila === filtro);
+
   return (
     <section className="panel">
       <div className="phead">
         <div>
           <div className="t">Ordem de atendimento</div>
-          <div className="sub">data da cirurgia conforme a ordem da fila</div>
+          <div className="sub">prazo-limite conforme a ordem da fila</div>
         </div>
         <div className="chiprow">
-          {FILTROS.map((f, i) => (
-            <span key={f} className={`fchip${i === 0 ? " on" : ""}`}>
+          {FILTROS.map((f) => (
+            <span
+              key={f}
+              className={`fchip${filtro === f ? " on" : ""}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setFiltro(f)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setFiltro(f)}
+            >
               {f}
             </span>
           ))}
@@ -27,18 +41,18 @@ export default function FilaTable({ onSelect }: Props) {
       <div className="thead">
         <div className="c-ord">#</div>
         <div className="c-pac">Paciente</div>
-        <div className="c-dat">Data da cirurgia</div>
+        <div className="c-dat">Prazo-limite</div>
         <div className="c-proc">Procedimento</div>
         <div className="c-hosp">Hospital</div>
         <div className="c-fila">Fila</div>
       </div>
 
-      {FILA.map((item) => {
-        const fam = FAMILIA_DA_FILA[item.fila];
+      {visiveis.map((item) => {
+        const fam = familiaDe(item.fila);
         return (
           <div
             className={`trow ${fam}`}
-            key={item.paciente.id}
+            key={item.solicitacao_id}
             role="button"
             tabIndex={0}
             onClick={() => onSelect?.(item)}
@@ -49,17 +63,17 @@ export default function FilaTable({ onSelect }: Props) {
               }
             }}
           >
-            <div className="c-ord ord">{item.ordem}</div>
+            <div className="c-ord ord">{item.posicao}</div>
             <div className="c-pac pac">
-              <span className="av">{iniciais(item.paciente.nome)}</span>
+              <span className="av">{iniciais(item.paciente_nome)}</span>
               <div>
-                <div className="nm">{item.paciente.nome}</div>
-                <div className="id">{item.paciente.id}</div>
+                <div className="nm">{item.paciente_nome}</div>
+                <div className="id">{item.paciente_id}</div>
               </div>
             </div>
             <div className="c-dat dat">
-              <div className="d">{item.dataCirurgia}</div>
-              <div className="w">{item.diaSemana}</div>
+              <div className="d">{dataBr(item.data_limite_efetiva)}</div>
+              <div className="w">{diaSemana(item.data_limite_efetiva)}</div>
             </div>
             <div className="c-proc proc">{item.procedimento}</div>
             <div className="c-hosp hosp">

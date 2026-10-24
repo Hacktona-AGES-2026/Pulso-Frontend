@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-export type Rota = "visao" | "fila" | "agenda" | "revisao" | "pendencias" | "dados";
+export type Rota = "visao" | "fila" | "agenda" | "mudancas" | "revisao" | "pendencias" | "dados";
 
-const ROTAS: Rota[] = ["visao", "fila", "agenda", "revisao", "pendencias", "dados"];
+const ROTAS: Rota[] = ["visao", "fila", "agenda", "mudancas", "revisao", "pendencias", "dados"];
 
 function atual(def: Rota): Rota {
   const h = window.location.hash.replace(/^#\/?/, "") as Rota;

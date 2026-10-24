@@ -1,7 +1,10 @@
 import { useState } from "react";
 import PageHeader from "../components/PageHeader";
-import { FAMILIA_DA_FILA, type Severidade } from "../data/fila";
-import { MARCACOES } from "../data/revisao";
+import Estado from "../components/Estado";
+import { type Severidade } from "../data/fila";
+import { useApi } from "../data/useApi";
+import { api } from "../data/api";
+import { descreverMarcacao, familiaDe } from "../data/derivar";
 
 const FILTROS: Array<"todas" | Severidade> = ["todas", "alta", "media", "baixa", "informativa"];
 const ROTULO: Record<string, string> = {
@@ -10,11 +13,12 @@ const ROTULO: Record<string, string> = {
 
 export default function RevisaoHumana() {
   const [filtro, setFiltro] = useState<"todas" | Severidade>("todas");
-  const itens = MARCACOES.filter((m) => filtro === "todas" || m.severidade === filtro);
+  const marcacoes = useApi(() => api.marcacoes(), []);
+  const itens = (marcacoes.dados ?? []).filter((m) => filtro === "todas" || m.severidade === filtro);
 
   return (
     <>
-      <PageHeader titulo="Revisão humana" subtitulo="marcações que pedem decisão do regulador, por severidade" />
+      <PageHeader titulo="Revisão humana" subtitulo="marcações de qualidade de dados, por severidade · decisões de fila ficam na Caixa do médico" />
 
       <div className="chiprow stand">
         {FILTROS.map((f) => (
@@ -31,25 +35,28 @@ export default function RevisaoHumana() {
           <div>Marcação</div>
           <div className="right">Fila</div>
         </div>
-        {itens.map((m, i) => (
-          <div className="trow lrow-grid" key={m.sid + i}>
-            <div className="sevcell">
-              <span className={`sevdot ${m.severidade}`} />
-              <span className={`sevlabel ${m.severidade}`}>{ROTULO[m.severidade]}</span>
+        <Estado estado={marcacoes}>
+          {itens.length === 0 && <div className="vazio" style={{ padding: "16px" }}>nenhuma marcação nesta severidade</div>}
+          {itens.map((m, i) => (
+            <div className="trow lrow-grid" key={m.solicitacao_id + m.marcacao + i}>
+              <div className="sevcell">
+                <span className={`sevdot ${m.severidade}`} />
+                <span className={`sevlabel ${m.severidade}`}>{ROTULO[m.severidade]}</span>
+              </div>
+              <div>
+                <div className="nm">{m.paciente_nome}</div>
+                <div className="id">{m.solicitacao_id}</div>
+              </div>
+              <div>
+                <div className="nm">{m.marcacao.replace(/_/g, " ")}</div>
+                <div className="od">{descreverMarcacao(m.marcacao, m.descricao)}</div>
+              </div>
+              <div className="right">
+                <span className={`pill p-${familiaDe(m.fila)}`}>{m.fila}</span>
+              </div>
             </div>
-            <div>
-              <div className="nm">{m.paciente}</div>
-              <div className="id">{m.sid}</div>
-            </div>
-            <div>
-              <div className="nm">{m.marcacao.replace(/_/g, " ")}</div>
-              <div className="od">{m.descricao}</div>
-            </div>
-            <div className="right">
-              <span className={`pill p-${FAMILIA_DA_FILA[m.fila]}`}>{m.fila}</span>
-            </div>
-          </div>
-        ))}
+          ))}
+        </Estado>
       </section>
     </>
   );

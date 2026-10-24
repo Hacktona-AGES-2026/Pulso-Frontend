@@ -3,6 +3,7 @@ import { useRota } from "./router";
 import VisaoGeral from "./screens/VisaoGeral";
 import Fila from "./screens/Fila";
 import Agenda from "./screens/Agenda";
+import Mudancas from "./screens/Mudancas";
 import RevisaoHumana from "./screens/RevisaoHumana";
 import Pendencias from "./screens/Pendencias";
 import Dados from "./screens/Dados";
@@ -17,6 +18,7 @@ export default function App() {
         {rota === "visao" && <VisaoGeral />}
         {rota === "fila" && <Fila />}
         {rota === "agenda" && <Agenda />}
+        {rota === "mudancas" && <Mudancas />}
         {rota === "revisao" && <RevisaoHumana />}
         {rota === "pendencias" && <Pendencias />}
         {rota === "dados" && <Dados />}

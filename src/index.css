@@ -257,6 +257,36 @@ body {
 .dfoot { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); }
 .dfoot button { flex: 1; border: 1px solid var(--line); background: #fff; color: var(--muted); font-family: inherit; font-weight: 700; font-size: 12px; padding: 10px; border-radius: 10px; cursor: not-allowed; }
 
+.apistate { display: flex; align-items: center; gap: 14px; justify-content: center; padding: 40px 16px; color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.apistate.erro { color: var(--red); }
+.apistate button { cursor: pointer; }
+
+/* Decisão do médico (Revisão humana) */
+.dfoot button.ativo { color: #fff; border-color: transparent; cursor: pointer; }
+.dfoot button.aprovar { background: var(--grn, #2fa36b); }
+.dfoot button.rejeitar { background: #fff; color: var(--red); border-color: var(--red-t); }
+.decide { display: flex; gap: 8px; align-items: center; }
+.decide button { border: 1px solid var(--line); background: #fff; font-family: inherit; font-weight: 700; font-size: 12px; padding: 7px 14px; border-radius: 9px; cursor: pointer; }
+.decide button.aprovar { background: var(--grn, #2fa36b); color: #fff; border-color: transparent; }
+.decide button.rejeitar { color: var(--red); border-color: var(--red-t); }
+.decide input { flex: 1; border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; font-family: inherit; font-size: 12.5px; }
+.mudtipo { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.mudtipo.subir { color: var(--grn, #2fa36b); }
+.mudtipo.sair { color: var(--red); }
+
+.mudlist { display: flex; flex-direction: column; gap: 12px; }
+.mudcard { padding: 16px 18px; }
+.mudtop { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mudfilas { display: flex; align-items: center; gap: 6px; }
+.mudfilas .seta { color: var(--muted); font-weight: 700; }
+.mudpos { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tag.onco { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #f3892f; background: var(--org-t); padding: 2px 8px; border-radius: 999px; }
+.mudpac { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; }
+.mudpac .nm { font-weight: 700; font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+.mudpac .id { font-size: 11.5px; color: var(--muted); }
+.mudmotivo { font-size: 13px; line-height: 1.5; color: var(--ink); margin: 8px 0 4px; }
+.mudacao { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+
 @media (max-width: 900px) {
   .grid2 { grid-template-columns: 1fr; }
 }

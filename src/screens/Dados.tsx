@@ -1,6 +1,9 @@
 import { useState } from "react";
 import PageHeader from "../components/PageHeader";
-import { QUARENTENA, FORA_DA_FILA, EXECUCOES, RESUMO_DADOS } from "../data/dados";
+import Estado from "../components/Estado";
+import { useApi } from "../data/useApi";
+import { api } from "../data/api";
+import { QUARENTENA, FORA_DA_FILA, EXECUCOES } from "../data/dados";
 
 type Sub = "quarentena" | "fora" | "execucoes";
 const SUBS: Array<{ id: Sub; rotulo: string }> = [
@@ -11,26 +14,32 @@ const SUBS: Array<{ id: Sub; rotulo: string }> = [
 
 export default function Dados() {
   const [sub, setSub] = useState<Sub>("quarentena");
-  const r = RESUMO_DADOS;
+  const resumo = useApi(() => api.resumo(), []);
+
+  const s = resumo.dados?.solicitacoes ?? {};
+  const lidas = Object.values(s).reduce((a, b) => a + b, 0);
+  const duplicatas = s.duplicata ?? 0;
 
   return (
     <>
       <PageHeader titulo="Dados" subtitulo="o que foi corrigido, descartado e registrado na carga" />
 
-      <div className="minis">
-        <Mini n={r.lidas} l="lidas" />
-        <Mini n={r.unicas} l="únicas" />
-        <Mini n={r.ativas} l="ativas" />
-        <Mini n={r.duplicatas} l="duplicatas" />
-        <Mini n={r.saidas} l="saídas" />
-        <Mini n={r.quarentena} l="quarentena" />
-        <Mini n={r.duplicados} l="duplicados" />
-      </div>
+      <Estado estado={resumo}>
+        <div className="minis">
+          <Mini n={lidas} l="lidas" />
+          <Mini n={lidas - duplicatas} l="únicas" />
+          <Mini n={s.ativa ?? 0} l="ativas" />
+          <Mini n={duplicatas} l="duplicatas" />
+          <Mini n={s.saiu ?? 0} l="saídas" />
+          <Mini n={resumo.dados?.eventos.quarentena ?? 0} l="quarentena" />
+          <Mini n={resumo.dados?.eventos.processados ?? 0} l="eventos" />
+        </div>
+      </Estado>
 
       <div className="chiprow stand">
-        {SUBS.map((s) => (
-          <button key={s.id} className={`fchip btn${sub === s.id ? " on" : ""}`} onClick={() => setSub(s.id)}>
-            {s.rotulo}
+        {SUBS.map((x) => (
+          <button key={x.id} className={`fchip btn${sub === x.id ? " on" : ""}`} onClick={() => setSub(x.id)}>
+            {x.rotulo}
           </button>
         ))}
       </div>

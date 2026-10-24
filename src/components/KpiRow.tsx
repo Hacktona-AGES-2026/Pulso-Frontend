@@ -1,5 +1,5 @@
 import Icon, { type IconName } from "./Icon";
-import { KPIS, type IconeKpi } from "../data/fila";
+import { type IconeKpi, type Kpi } from "../data/fila";
 
 const ICONE: Record<IconeKpi, IconName> = {
   users: "users",
@@ -9,10 +9,10 @@ const ICONE: Record<IconeKpi, IconName> = {
   phone: "phone",
 };
 
-export default function KpiRow() {
+export default function KpiRow({ kpis }: { kpis: Kpi[] }) {
   return (
     <div className="kpis">
-      {KPIS.map((k) => (
+      {kpis.map((k) => (
         <div className="kpi" key={k.rotulo}>
           <span className="ic" style={{ background: k.fundo, color: k.cor }}>
             <Icon name={ICONE[k.icone]} size={20} strokeWidth={2} />
