@@ -5,7 +5,7 @@ Plataforma de regulação da fila de cirurgias eletivas. Duas áreas separadas:
 - **Pública** (`/`, `/como-funciona`): o paciente consulta só o próprio encaminhamento com CPF ou Cartão Nacional de Saúde e data de nascimento.
 - **Profissional** (`/profissional/*`): médicos reguladores acessam Visão geral, Fila, Revisão humana e a tela de cada paciente, lendo e decidindo direto na API do [Pulso-Backend](../Pulso-Backend).
 
-E a página **Pipeline** (`/pipeline`), que mostra em rolagem como a fila é montada (entrada e limpeza, motor, eventos, decisão do médico e saída).
+E a página **Pipeline** (`/pipeline`), que mostra em rolagem como a fila é montada (entrada e limpeza, motor, decisão do médico, máquina do tempo e saída). Ela tem link no menu da área profissional e no fim de "Como funciona".
 
 ## Rodar
 
@@ -74,4 +74,9 @@ O dataset não tem CPF nem data de nascimento, então a consulta pública usa da
 
 ## Página Pipeline
 
-`src/pages/publico/Pipeline.tsx` e `src/pages/publico/pipeline/`. Não chama a API: usa os JSON em `src/pages/publico/pipeline/dados/`, gerados a partir do pipeline real por `scripts/dados_historia.py` (instruções no topo do script).
+`src/pages/publico/Pipeline.tsx` e `src/pages/publico/pipeline/`. Não chama a API: usa os JSON em `src/pages/publico/pipeline/dados/`, gerados a partir do código real do backend (instruções de uso no topo de cada script):
+
+| Script | Gera | Precisa |
+| --- | --- | --- |
+| `scripts/dados_historia.py` | `fila.json`, `recibos.json` (seções de limpeza, motor, médico e saída) | Postgres do backend no ar |
+| `scripts/dados_maquina_tempo.py` | `maquina_tempo.json` (seção Máquina do tempo) | Só o módulo `fila_cirurgica` do backend |
