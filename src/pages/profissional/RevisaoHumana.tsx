@@ -77,18 +77,21 @@ export function RevisaoHumana() {
     <div className="px-4 py-8 sm:px-6 lg:px-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-[2.5rem]">Revisão humana</h1>
-        {eventosPendentes > 0 && (
-          <Botao
-            variante="secundario"
-            className="min-h-10 px-4"
-            carregando={processando}
-            onClick={processarProximo}
-            title="Reavalia o paciente do próximo evento clínico ainda não lido pelo sistema. Se o nível precisar mudar, um novo pedido aparece aqui."
-          >
-            <StepForward size={16} /> Processar próximo evento
-            <span className="tabular text-tinta-soft">({eventosPendentes})</span>
-          </Botao>
-        )}
+        <Botao
+          variante="secundario"
+          className="min-h-10 px-4"
+          carregando={processando}
+          disabled={eventosPendentes === 0}
+          onClick={processarProximo}
+          title={
+            eventosPendentes === 0
+              ? 'Todos os eventos clínicos já foram processados.'
+              : 'Reavalia o paciente do próximo evento clínico ainda não lido pelo sistema. Se o nível precisar mudar, um novo pedido aparece aqui.'
+          }
+        >
+          <StepForward size={16} /> Processar próximo evento
+          <span className="tabular text-tinta-soft">({eventosPendentes})</span>
+        </Botao>
       </header>
 
       <div className="mt-5 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo de pedido">
