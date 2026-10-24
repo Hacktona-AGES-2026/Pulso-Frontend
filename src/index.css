@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-titulo: "Raleway", system-ui, sans-serif;
   --font-sans: "Montserrat", system-ui, sans-serif;
 
   /* Paleta oceano, levemente mais saturada que a referência */
@@ -53,10 +53,17 @@
   h1,
   h2,
   h3 {
-    @apply font-serif text-petroleo;
-    font-weight: 600;
-    line-height: 1.12;
-    letter-spacing: -0.005em;
+    @apply font-titulo text-petroleo;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+  /* Raleway usa algarismos antigos por padrão; nos títulos e números queremos alinhados */
+  .font-titulo,
+  h1,
+  h2,
+  h3 {
+    font-variant-numeric: lining-nums;
   }
   :focus-visible {
     outline: 2px solid var(--color-oceano);

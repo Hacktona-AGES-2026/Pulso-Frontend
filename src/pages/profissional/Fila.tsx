@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Search } from 'lucide-react'
-import { BarraPrazo, SeloFila, TOM_FILA, cx } from '../../components/ui'
+import { SeloFila, TOM_FILA, cx } from '../../components/ui'
 import { NOME_FILA, ORDEM_FILAS, type FilaCodigo } from '../../data/fila'
 import { formatarData, HOJE } from '../../lib/datas'
 import type { LinhaFila } from '../../lib/prioridade'
@@ -15,11 +15,10 @@ const normalizar = (t: string) =>
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
 
-type Chave = 'posicao' | 'dias' | 'prazo'
+type Chave = 'posicao' | 'dias'
 const ORDENADORES: Record<Chave, (a: LinhaFila, b: LinhaFila) => number> = {
   posicao: (a, b) => a.posicao - b.posicao,
   dias: (a, b) => a.dias - b.dias,
-  prazo: (a, b) => a.fatores.percentualPrazo - b.fatores.percentualPrazo,
 }
 
 export function Fila() {
@@ -136,7 +135,7 @@ export function Fila() {
 
       {visiveis.length === 0 ? (
         <div className="mt-3 rounded-xl border border-dashed border-linha bg-white px-6 py-14 text-center">
-          <p className="font-serif text-2xl text-petroleo">Nenhum paciente encontrado</p>
+          <p className="font-titulo text-2xl text-petroleo">Nenhum paciente encontrado</p>
           <p className="mt-1 text-sm text-tinta-soft">Revise a busca ou os filtros aplicados.</p>
         </div>
       ) : (
@@ -159,9 +158,6 @@ export function Fila() {
                   <Cabecalho chave="dias" atual={chave} crescente={crescente} aoOrdenar={ordenarPor} className="text-right">
                     Dias na fila
                   </Cabecalho>
-                  <Cabecalho chave="prazo" atual={chave} crescente={crescente} aoOrdenar={ordenarPor}>
-                    Prazo utilizado
-                  </Cabecalho>
                   <th scope="col" className="px-3 py-3 pr-5 font-medium">Motivo</th>
                 </tr>
               </thead>
@@ -172,7 +168,7 @@ export function Fila() {
                     onClick={() => navegar(`/profissional/pacientes/${l.paciente.id}`)}
                     className="cursor-pointer align-top transition-colors hover:bg-areia/70"
                   >
-                    <td className="tabular relative py-3.5 pl-5 pr-3 font-serif text-xl font-semibold text-petroleo">
+                    <td className="tabular relative py-3.5 pl-5 pr-3 font-titulo text-xl font-semibold text-petroleo">
                       <span className={cx('absolute inset-y-0 left-0 w-1', TOM_FILA[l.paciente.fila].barra)} aria-hidden="true" />
                       {l.posicao}
                     </td>
@@ -199,9 +195,6 @@ export function Fila() {
                       <SeloFila f={l.paciente.fila} compacto />
                     </td>
                     <td className="tabular px-3 py-3.5 text-right font-medium">{l.dias}</td>
-                    <td className="px-3 py-4">
-                      <BarraPrazo percentual={l.fatores.percentualPrazo} largura="w-20" compacta />
-                    </td>
                     <td className="min-w-64 px-3 py-3.5 pr-5 text-[13px] leading-snug text-tinta-soft">{l.resumo}</td>
                   </tr>
                 ))}
@@ -219,7 +212,7 @@ export function Fila() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-baseline gap-3">
-                      <span className="tabular font-serif text-2xl font-semibold text-petroleo">{l.posicao}</span>
+                      <span className="tabular font-titulo text-2xl font-semibold text-petroleo">{l.posicao}</span>
                       <div>
                         <p className="font-semibold">{l.paciente.nome}</p>
                         <p className="tabular text-xs text-tinta-soft">
@@ -232,15 +225,12 @@ export function Fila() {
                   <p className="mt-3 text-sm">
                     {l.paciente.procedimento} <span className="text-tinta-soft">· {l.paciente.cid}</span>
                   </p>
-                  <div className="mt-3 flex items-end justify-between gap-4">
-                    <div className="text-sm">
+                  <div className="mt-3 flex items-center justify-between gap-4 text-sm">
+                    <span>
                       <span className="tabular font-semibold">{l.dias}</span>{' '}
                       <span className="text-tinta-soft">dias na fila</span>
-                      <div className="mt-1">
-                        <Mudanca linha={l} />
-                      </div>
-                    </div>
-                    <BarraPrazo percentual={l.fatores.percentualPrazo} compacta />
+                    </span>
+                    <Mudanca linha={l} />
                   </div>
                   <p className="mt-3 border-t border-linha pt-3 text-[13px] leading-snug text-tinta-soft">{l.resumo}</p>
                 </Link>

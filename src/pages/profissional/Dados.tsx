@@ -30,7 +30,7 @@ export function Dados() {
         {RESUMO.map(([k, rotulo]) => (
           <div key={k} className="flex flex-col-reverse bg-white px-4 py-3.5">
             <dt className="mt-1 text-xs text-tinta-soft">{rotulo}</dt>
-            <dd className="tabular font-serif text-[1.8rem] font-semibold leading-none text-petroleo">{RESUMO_DADOS[k]}</dd>
+            <dd className="tabular font-titulo text-[1.8rem] font-semibold leading-none text-petroleo">{RESUMO_DADOS[k]}</dd>
           </div>
         ))}
       </dl>

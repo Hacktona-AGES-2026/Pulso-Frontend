@@ -1,10 +1,8 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ShieldAlert, ShieldCheck } from 'lucide-react'
 import { Cartao, SeloFila, TOM_FILA, cx } from '../../components/ui'
 import { NOME_FILA, ORDEM_FILAS } from '../../data/fila'
 import { formatarData, HOJE } from '../../lib/datas'
-import { regraDeOuro } from '../../lib/prioridade'
 import { usePulso } from '../../store/PulsoStore'
 import { Indicadores } from './Indicadores'
 
@@ -16,25 +14,13 @@ export function VisaoGeral() {
     [fila],
   )
   const maior = Math.max(...porNivel.map((x) => x.n))
-  const ouro = useMemo(() => regraDeOuro(fila), [fila])
   const altas = pendentes.filter((m) => m.severidade === 'alta')
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="tabular text-sm text-tinta-soft">{formatarData(HOJE)}</p>
-          <h1 className="text-[2.5rem]">Visão geral</h1>
-        </div>
-        <span
-          className={cx(
-            'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold',
-            ouro ? 'bg-sucesso-50 text-sucesso' : 'bg-urgente-50 text-urgente',
-          )}
-        >
-          {ouro ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
-          {ouro ? 'Regra de ouro respeitada' : 'Regra de ouro violada'}
-        </span>
+      <header>
+        <p className="tabular text-sm text-tinta-soft">{formatarData(HOJE)}</p>
+        <h1 className="text-[2.5rem]">Visão geral</h1>
       </header>
 
       <Indicadores />

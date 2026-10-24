@@ -70,7 +70,7 @@ export function Paciente() {
         <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
           <div>
             <p className="text-[13px] text-tinta-soft">Posição</p>
-            <p className="tabular font-serif text-5xl font-semibold leading-none text-petroleo">{linha.posicao}</p>
+            <p className="tabular font-titulo text-5xl font-semibold leading-none text-petroleo">{linha.posicao}</p>
             {delta !== 0 && (
               <p className="tabular mt-1 text-xs text-tinta-soft">
                 {delta > 0 ? '↑' : '↓'} era {linha.posicaoChegada}
@@ -177,7 +177,7 @@ function PorQue({ linha }: { linha: LinhaFila }) {
         <div>
           <p className="text-sm font-semibold">Pontuação total</p>
         </div>
-        <p className="tabular font-serif text-4xl font-semibold leading-none text-petroleo">{f.total}</p>
+        <p className="tabular font-titulo text-4xl font-semibold leading-none text-petroleo">{f.total}</p>
       </div>
     </Cartao>
   )

@@ -66,7 +66,7 @@ export function RevisaoHumana() {
       {visiveis.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-linha bg-white px-6 py-14 text-center">
           <CheckCheck size={26} className="mx-auto text-oceano" />
-          <p className="mt-3 font-serif text-2xl text-petroleo">Nada pendente</p>
+          <p className="mt-3 font-titulo text-2xl text-petroleo">Nada pendente</p>
         </div>
       ) : (
         <ul className="mt-6 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
@@ -86,7 +86,7 @@ export function RevisaoHumana() {
 
                 <Link
                   to={`/profissional/pacientes/${m.sid}`}
-                  className="mt-2 font-serif text-[1.55rem] font-semibold leading-tight text-petroleo hover:underline"
+                  className="mt-2 font-titulo text-[1.55rem] font-semibold leading-tight text-petroleo hover:underline"
                 >
                   {l.paciente.nome}
                 </Link>

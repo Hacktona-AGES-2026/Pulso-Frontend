@@ -32,7 +32,7 @@ export function ComoFunciona() {
       <ol className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
         {ETAPAS.map((e, i) => (
           <li key={e.titulo} className="border-t-2 border-petroleo pt-5">
-            <span className="font-serif text-5xl font-semibold leading-none text-agua" aria-hidden="true">
+            <span className="font-titulo text-5xl font-semibold leading-none text-agua" aria-hidden="true">
               {String(i + 1).padStart(2, '0')}
             </span>
             <h2 className="mt-4 text-[1.75rem]">{e.titulo}</h2>

@@ -34,7 +34,7 @@ export function Marca({ para = '/', claro = false }: { para?: string; claro?: bo
           className={claro ? 'text-agua' : 'text-oceano'}
         />
       </svg>
-      <span className={cx('font-serif text-[1.45rem] font-bold leading-none', claro ? 'text-white' : 'text-petroleo')}>
+      <span className={cx('font-titulo text-[1.45rem] font-bold leading-none', claro ? 'text-white' : 'text-petroleo')}>
         Pulso
       </span>
     </Link>
